@@ -69,7 +69,8 @@ Sub-config file...
     :
 target_service = 'apache-error'            ... only affects log message.
 target_log = '/var/log/httpd/error_log'    ... name of log file.
-target_port = 80                           ... BAN tcp port.
+target_protcol = 'tcp'                     ... BAN protcol.
+target_port = 80                           ... BAN port.
 target_rule = 'DROP'                       ... BAN packet rule. (DROP, REJECT, LOG)
 
 target_str[] = '/error\] \[client (.*)\] client /'        ... (.) is target of BAN.
@@ -78,6 +79,9 @@ target_str[] = '/error\] \[client (.*)\] client /'        ... (.) is target of B
 -------------------------------
 
 "target_str[]" is array parameter. Please write a regular expression..
+
+If you set 'all' to target_protcol and 'target_port', BAN all access from target IP address.
+
 
 Step2. Start ban4ipd
 
