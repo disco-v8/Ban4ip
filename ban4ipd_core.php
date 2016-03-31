@@ -377,8 +377,8 @@ do // SIGHUPに対応したループ構造にしている
                 log_write($BAN4IPD_CONF);
             }
             
-            // カウントデータベースから現在時刻 - 対象時間より昔のデータをすべて削除
-            $BAN4IPD_CONF['count_db']->exec("DELETE FROM count_tbl WHERE registdate < (".(time() - $BAN4IPD_CONF['findtime']).")");
+            // カウントデータベースから最大カウント時間を過ぎたデータをすべて削除(いわゆる削除漏れのゴミ掃除)
+            $BAN4IPD_CONF['count_db']->exec("DELETE FROM count_tbl WHERE registdate < ".$BAN4IPD_CONF['maxfindtime']);
             // BANデータベースでBAN解除対象IPアドレスを取得
             $RESULT = $BAN4IPD_CONF['ban_db']->query("SELECT * FROM ban_tbl WHERE unbandate < ".time());
             // 該当データがあったらUNBANする
