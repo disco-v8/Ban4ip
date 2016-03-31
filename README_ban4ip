@@ -1,11 +1,6 @@
 
 <<< BAN for IP address >>>
 
-; Ver.00.01    2016.03.22 Alpha Release. :-)
-; Ver.00.10    2016.03.29 Beta Release. (Daemonized)
-; Ver.00.11    2016.03.31  Change Log files permission. (700 -> 600)
-                           add postfix.conf
-
 Ban4IP reads log file containing failure report, and ban these IP addresses using iptables.
 
 Ban4IP is supported IPv4 and IPv6 address.
