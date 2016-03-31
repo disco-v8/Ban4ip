@@ -95,6 +95,8 @@ function ban4ip_loop($TARGET_CONF)
                                     $TARGET_CONF['target_hostname'] = gethostbyaddr($TARGET_CONF['target_address']);
                                 }
                                 
+                                // カウントデータベースから該当サービスの現在時刻 - 対象時間より昔のカウントデータを削除
+                                $TARGET_CONF['count_db']->exec("DELETE FROM count_tbl WHERE service = '".$TARGET_CONF['target_service']."' AND registdate < (".(time() - $TARGET_CONF['findtime']).")");
                                 // カウントデータベースにカウント対象IPアドレスを登録
                                 $TARGET_CONF['count_db']->exec("INSERT INTO count_tbl VALUES ('".$TARGET_CONF['target_address']."','".$TARGET_CONF['target_service']."',".$TARGET_CONF['logtime'].")");
                                 
