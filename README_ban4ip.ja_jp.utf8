@@ -66,7 +66,8 @@ Step1. メインの設定ファイル「ban4ipd.conf」とサブ設定ファイ�
     :
 target_service = 'apache-error'            ... ログ出力にのみ関係します(後述)
 target_log = '/var/log/httpd/error_log'    ... 監視対象ログファイル名(フルパスで記述すること)
-target_port = 80                           ... BANするtcpポート
+target_protcol = tcp                       ... BANするプロトコル
+target_port = 80                           ... BANするポート
 target_rule = 'DROP'                       ... BANする際のパケットの扱い(DROP, REJECT, LOG)
 
 target_str[] = '/error\] \[client (.*)\] client /'        ... (.)はBANするIPアドレスが書いてある場所
@@ -77,6 +78,8 @@ target_str[] = '/error\] \[client (.*)\] client /'        ... (.)はBANするIP�
 target_str[]は配列変数です。
 
 ここに正規表現でfailの場合のログの文字列と、BAN対象アドレスが書いてある場所を(.)で指定してください。
+
+target_portとtarget_ruleを'all'にすると、対象IPアドレスからのすべてのアクセスをBANします。
 
 
 Step2. ban4ipdを起動しましよう
