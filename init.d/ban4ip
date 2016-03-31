@@ -1,0 +1,45 @@
+#!/bin/bash
+#
+#       /etc/init.d/ban4ip
+#
+#       Ban4IP reads log file containing failure report, and ban these IP addresses using iptables.
+#       Ban4IP is supported IPv4 and IPv6 address.
+#       To all of the administrators and IPv4 and IPv6 users. :-)
+#
+# chkconfig: 2345 09 91
+# description: BAN for IP address
+# processname: ban4ip
+
+# Source function library.
+. /etc/init.d/functions
+
+# Check that the config file exists
+[ -f /etc/ban4ipd.conf ] || exit 0
+
+BAN4IPD="/usr/bin/ban4ipd"
+BAN4IPC="/usr/bin/ban4ipc"
+
+case "$1" in
+    start)
+        echo -n "Starting ban4ipd: "
+        ${BAN4IPC} start
+        ;;
+    stop)
+        echo -n "Shutting down ban4ipd: "
+        ${BAN4IPC} stop
+        ;;
+    reload)
+        ${BAN4IPC} reload
+        ;;
+    restart)
+        ${BAN4IPC} restart
+        ;;
+    list)
+        ${BAN4IPC} list
+        ;;
+    *)
+        echo "Usage: ban4ipd {start|stop|reload|restart|list]"
+        exit 1
+        ;;
+esac
+exit $?

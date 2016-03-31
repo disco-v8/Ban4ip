@@ -1,0 +1,8 @@
+/var/log/ban4ipd.log {
+    rotate 14
+    missingok
+    compress
+    postrotate
+      /usr/bin/ban4ipc reload > /dev/null
+    endscript
+}
