@@ -75,10 +75,10 @@ function ban4ip_optioncheck($BAN4IPD_CONF, $BAN4IPC_OPTIONS)
     }
     
     
-    // 対象プロトコル(--protcol)が設定されているなら
+    //対象プロトコルが設定されていないなら
     if (isset($BAN4IPC_OPTIONS['protcol']))
     {
-        // 対象プロトコルをBAN対象として設定
+        // 全プロトコル(all)をBAN対象として設定
         $BAN4IPD_CONF['target_protcol'] = $BAN4IPC_OPTIONS['protcol'];
         
         // 対象プロトコルが文字列指定でないか、tcpでもudpでもallでもないなら
