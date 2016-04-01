@@ -246,9 +246,9 @@ function ban4ip_banlist($BAN4IPD_CONF)
     printf("%-39s %-16s %-10s %-6s %s",'IP Address','Service','Port','Rule','Until');
     print "\n";
     
-    // BANデータベースでBAN解除対象IPアドレスを取得
+    // BANデータベース内の全データを取得
     $RESULT = $BAN4IPD_CONF['ban_db']->query("SELECT * FROM ban_tbl");
-    // 該当データがあったらUNBANする
+    // データがあったら表示する
     while ($DB_DATA = $RESULT->fetchArray(SQLITE3_ASSOC))
     {
         printf("%-39s %-16s %-10s %-6s %s",$DB_DATA['address'],$DB_DATA['service'],$DB_DATA['port'],$DB_DATA['rule'],date("Y/m/d H:i:s",$DB_DATA['unbandate']));
@@ -272,8 +272,8 @@ $BAN4IPC_LONGOPT  = array(
     "unban",                  // 値は要らない
     "address:",               // 値が必須
     "bantime:",               // 値が必須([s]、指定が無ければconfigのデフォルト値)
-    "port:",                  // 値が必須
-    "protcol:",               // 値が必須
+    "port:",                  // 値が必須、指定が無ければall)
+    "protcol:",               // 値が必須、指定が無ければall)
     "rule:",                  // 値が必須
     "service:",               // 値が必須(サービスの指定が無ければmanualというサービス名にする :-)
 );
