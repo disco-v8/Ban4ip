@@ -31,9 +31,10 @@ Step0. インストールしてください(例. CentOS6の場合)
 yum -y install php php-devel php-pear php-mbstring php-pdo php-process
 pecl install channel://pecl.php.net/inotify-0.x.x
 
-tar xvzf ./ban4ip-yyyymmdd.gz
+wget 'https://github.com/disco-v8/Ban4ip/archive/master.zip' -O Ban4ip-master.zip
+unzip ./Ban4ip-master.zip
 
-cd ./ban4ip-yyyymmdd
+cd ./Ban4ip-master/
 
 chmod 700 ./ban4ipd
 chmod 700 ./ban4ipc
