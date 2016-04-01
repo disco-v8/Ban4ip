@@ -110,15 +110,11 @@ else
     print $BAN4IPD_CONF['main_conf']." not found!?"."\n";
     // 終わり
     exit -1;
-    // エラーメッセージに、メイン設定ファイルがない旨を設定
-    $ERR_MSG = 'Cannot read '.$BAN4IPD_CONF['main_conf'].'!?';
-    // 設定値をFALSEにする。
-    $BAN4IPD_CONF = FALSE;
 }
 // 読み込めなかったら
 if ($BAN4IPD_CONF === FALSE)
 {
-    print $BAN4IPD_CONF['main_conf']." not loaded!?"."\n";
+    print "Cannot loaded main config file!?"."\n";
     // 終わり
     exit -1;
 }
@@ -133,6 +129,7 @@ if ($BAN4IPD_CONF === FALSE)
 if (!is_dir($BAN4IPD_CONF['db_dir']))
 {
     print $BAN4IPD_CONF['db_dir']." not found!?"."\n";
+    // 終わり
     exit -1;
 }
 
