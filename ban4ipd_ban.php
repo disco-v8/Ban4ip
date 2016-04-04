@@ -151,9 +151,16 @@ function ban4ip_ban($TARGET_CONF)
             // ban4ipチェインに対象IPアドレスがないなら
             if (psearch($PROC_P, $TARGET_PATTERN) == FALSE)
             {
+                // BANする前のコマンド(exec_befor_ban)が設定されていたら実行(確実にBANする＝iptablesで設定する場合にのみ実行)
+                $TARGET_CONF = ban4ip_exec($TARGET_CONF, 'exec_befor_ban');
+                
                 $TARGET_CONF['log_msg'] .= 'until '.date("Y/m/d H:i:s", $TARGET_CONF['logtime'] + $TARGET_CONF['bantime'])."\n";
                 // ip6tablesのban4ipチェインに対象IPアドレスについて追加する
                 system($IPTABLES.' -I ban4ip --source '.$TARGET_CONF['target_address'].' --jump '.$TARGET_CONF['target_rule']);
+                
+                // BANした後のコマンド(exec_afer_ban)が設定されていたら実行(確実にBANする＝iptablesで設定する場合にのみ実行)
+                $TARGET_CONF = ban4ip_exec($TARGET_CONF, 'exec_after_ban');
+                
                 // BANした旨をメールで通知
                 ban4ip_mailsend($TARGET_CONF);
             }
@@ -185,9 +192,16 @@ function ban4ip_ban($TARGET_CONF)
             // ban4ipチェインに対象IPアドレスがないなら
             if (psearch($PROC_P, $TARGET_PATTERN) == FALSE)
             {
+                // BANする前のコマンド(exec_befor_ban)が設定されていたら実行(確実にBANする＝iptablesで設定する場合にのみ実行)
+                $TARGET_CONF = ban4ip_exec($TARGET_CONF, 'exec_befor_ban');
+                
                 $TARGET_CONF['log_msg'] .= 'until '.date("Y/m/d H:i:s", $TARGET_CONF['logtime'] + $TARGET_CONF['bantime'])."\n";
                 // ip6tablesのban4ipチェインに対象IPアドレスについて追加する
                 system($IPTABLES.' -I ban4ip --source '.$TARGET_CONF['target_address'].' --proto '.$TARGET_CONF['target_protcol'].' --dport '.$TARGET_CONF['target_port'].' --jump '.$TARGET_CONF['target_rule']);
+                
+                // BANした後のコマンド(exec_afer_ban)が設定されていたら実行(確実にBANする＝iptablesで設定する場合にのみ実行)
+                $TARGET_CONF = ban4ip_exec($TARGET_CONF, 'exec_after_ban');
+                
                 // BANした旨をメールで通知
                 ban4ip_mailsend($TARGET_CONF);
             }
