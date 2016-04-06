@@ -14,8 +14,17 @@
 // ----------------------------------------------------------------------
 function ban4ip_exec($BAN4IPD_CONF, $TARGET_CMD)
 {
-    // 既存のログメッセージ待避
-    $LOG_MSG = $BAN4IPD_CONF['log_msg'];
+    // 既存のログメッセージがあるなら
+    if (isset($BAN4IPD_CONF['log_msg']))
+    {
+        // 既存のログメッセージ待避
+        $LOG_MSG = $BAN4IPD_CONF['log_msg'];
+    }
+    // ないなら
+    else
+    {
+        $LOG_MSG = '';
+    }
     
     // 指定されたコマンド(exec_befor/after_ban/unban)が設定されていないなら
     if (!isset($BAN4IPD_CONF[$TARGET_CMD]) || (isset($BAN4IPD_CONF[$TARGET_CMD]) && strlen($BAN4IPD_CONF[$TARGET_CMD]) == 0))
@@ -56,6 +65,7 @@ function ban4ip_exec($BAN4IPD_CONF, $TARGET_CMD)
     
     // 既存のログメッセージを戻す
     $BAN4IPD_CONF['log_msg'] = $LOG_MSG;
+    
     // コマンド実行処理を抜ける
     return $BAN4IPD_CONF;
 }
