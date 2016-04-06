@@ -53,14 +53,11 @@ function ban4ip_mailsend($TARGET_CONF)
     // メールタイトル初期化
     $MAIL_TITLE = $TARGET_CONF['mail_title']." [".$TARGET_CONF['target_service']."] Ban ".$TARGET_CONF['target_address'];
     // ホスト名が設定されているなら
-    if (isset($_ENV["HOSTNAME"]))
+    if (gethostname())
     {
-        $MAIL_TITLE .= " from ".$_ENV["HOSTNAME"];
+        $MAIL_TITLE .= " from ".gethostname();
     }
-    else if (isset($_SERVER["HOSTNAME"]))
-    {
-        $MAIL_TITLE .= " from ".$_SERVER["HOSTNAME"];
-    }
+    
     // メール本文初期化
     $MAIL_STR = "\n";
     $MAIL_STR .= "Service : ".$TARGET_CONF['target_service']."\n";
