@@ -31,6 +31,12 @@ require(__DIR__."/ban4ipd_unban.php");
 // ----------------------------------------------------------------------
 // Sub Routine
 // ----------------------------------------------------------------------
+require(__DIR__."/ban4ipd_exec.php");
+?>
+<?php
+// ----------------------------------------------------------------------
+// Sub Routine
+// ----------------------------------------------------------------------
 function ban4ip_optioncheck($BAN4IPD_CONF, $BAN4IPC_OPTIONS)
 {
     // 現在日時を設定
@@ -75,10 +81,10 @@ function ban4ip_optioncheck($BAN4IPD_CONF, $BAN4IPC_OPTIONS)
     }
     
     
-    //対象プロトコルが設定されていないなら
+    // 対象プロトコル(--protcol)が設定されているなら
     if (isset($BAN4IPC_OPTIONS['protcol']))
     {
-        // 全プロトコル(all)をBAN対象として設定
+        // 対象プロトコルをBAN対象として設定
         $BAN4IPD_CONF['target_protcol'] = $BAN4IPC_OPTIONS['protcol'];
         
         // 対象プロトコルが文字列指定でないか、tcpでもudpでもallでもないなら
@@ -89,10 +95,10 @@ function ban4ip_optioncheck($BAN4IPD_CONF, $BAN4IPC_OPTIONS)
             exit -1;
         }
     }
-    //対象ポートが設定されていないなら
+    //対象プロトコルが設定されていないなら
     else
     {
-        // 全ポート(-1)をBAN対象として設定
+        // 全プロトコル(all)をBAN対象として設定
         $BAN4IPD_CONF['target_protcol'] = 'all';
     }
     
@@ -273,7 +279,7 @@ $BAN4IPC_LONGOPT  = array(
     "address:",               // 値が必須
     "bantime:",               // 値が必須([s]、指定が無ければconfigのデフォルト値)
     "port:",                  // 値が必須、指定が無ければall)
-    "protcol:",               // 値が必須、指定が無ければall)
+    "protcol:",               // 値が必須、指定が無ければall
     "rule:",                  // 値が必須
     "service:",               // 値が必須(サービスの指定が無ければmanualというサービス名にする :-)
 );
