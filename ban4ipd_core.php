@@ -65,13 +65,17 @@ function ban4ip_end($signo)
 {
     global $BAN4IPD_CONF;
     
-    // フォークした子プロセスをkillする
-    foreach ($BAN4IPD_CONF['proclist'] as $PID)
+    // フォークした子プロセスがあるなら
+    if (isset($BAN4IPD_CONF['proclist']) && is_array($BAN4IPD_CONF['proclist']))
     {
-        // 子プロセスをkillする
-        posix_kill($PID, SIGTERM);
-        // 子プロセスの終了を待つ
-        pcntl_waitpid($PID, $STATUS, WUNTRACED);
+        // フォークした子プロセスをkillする
+        foreach ($BAN4IPD_CONF['proclist'] as $PID)
+        {
+            // 子プロセスをkillする
+            posix_kill($PID, SIGTERM);
+            // 子プロセスの終了を待つ
+            pcntl_waitpid($PID, $STATUS, WUNTRACED);
+        }
     }
     unset($BAN4IPD_CONF['proclist']);
     
