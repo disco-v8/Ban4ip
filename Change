@@ -8,7 +8,7 @@
 ;                           Change count_db's clean logic. (new! "maxfindtime")
 ; Ver.00.12    2016.04.04   New param. ("exec_befor/after_ban", "exec_befor/after_unban")
 ; Ver.00.13    2016.04.06   Bug fix. (Add option to exec command, as iptables)
-;                           Bug fix. ($_SERVER["HOSTNAME"] -> $_ENV["HOSTNAME"],$_SERVER["HOSTNAME"] in ban4ip_mailsend())
+;                           Bug fix. ($_SERVER["HOSTNAME"] -> gethostname() in ban4ip_mailsend())
 ;                           Bug fix. (Add check UNIX socket resource in ban4ip_sendmsg())
 ;                           Bug fix. (Do not exit when ERROR in ban4ip_sendmsg())
 ;                           Bug fix. (Add check UNIX socket resource in ban4ip_close())
