@@ -17,4 +17,5 @@
 ;                           Bug fix. (Add check readable target file, and wait in ban4ip_init())
 ;                           Bug fix. (Add return when ERROR in ban4ip_init())
 ;                           Bug fix. (Do not call ban4ip_loop() when ERROR in ban4ip_start())
+;                           Bug fix. (Move ban4ip_exec() to ban4ip_exec.php)
 ;
