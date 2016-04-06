@@ -20,13 +20,27 @@ require(__DIR__."/ban4ipd_ban.php");
 // ----------------------------------------------------------------------
 function ban4ip_close($TARGET_CONF)
 {
-    // UNIXソケットを切断
-    socket_close($TARGET_CONF['socket']);
+    // UNIXソケットが開いていたら
+    if (isset($TARGET_CONF['socket']) && is_resource($TARGET_CONF['socket']))
+    {
+        // UNIXソケットを切断
+        socket_close($TARGET_CONF['socket']);
+    }
     
-    // inotifyによる監視を削除
-    inotify_rm_watch($TARGET_CONF['target_inotify'], $TARGET_CONF['target_watch']);
-    fclose($TARGET_CONF['target_inotify']);
-    fclose($TARGET_CONF['target_fp']);
+    // inotifyによる監視をしていたら
+    if (isset($TARGET_CONF['target_inotify']) && is_resource($TARGET_CONF['target_inotify']))
+    {
+        // inotifyによる監視を削除
+        inotify_rm_watch($TARGET_CONF['target_inotify'], $TARGET_CONF['target_watch']);
+        fclose($TARGET_CONF['target_inotify']);
+    }
+    
+    // 対象ファイルが開いていたら
+    if (isset($TARGET_CONF['target_fp']) && is_resource($TARGET_CONF['target_fp']))
+    {
+        // 対象ファイルを閉じる
+        fclose($TARGET_CONF['target_fp']);
+    }
     
     // パラメータを戻す
     return $TARGET_CONF;
@@ -95,6 +109,14 @@ function ban4ip_loop($TARGET_CONF)
                                     $TARGET_CONF['target_hostname'] = gethostbyaddr($TARGET_CONF['target_address']);
                                 }
                                 
+                                // 対象IPアドレスがIPv6なら
+                                    // IPv6マスク値が設定されていて、/128以外(0～127)なら
+                                        // 対象IPアドレスにマスク値を追加したアドレス表記を、対象IPアドレスとする
+                                
+                                // 対象IPアドレスがIPv4なら
+                                    // IPv4マスク値が設定されていて、/32以外(0～31)なら
+                                        // 対象IPアドレスにマスク値を追加したアドレス表記を、対象IPアドレスとする
+                                
                                 // カウントデータベースから該当サービスの現在時刻 - 対象時間より昔のカウントデータを削除
                                 $TARGET_CONF['count_db']->exec("DELETE FROM count_tbl WHERE service = '".$TARGET_CONF['target_service']."' AND registdate < (".(time() - $TARGET_CONF['findtime']).")");
                                 // カウントデータベースにカウント対象IPアドレスを登録
@@ -152,12 +174,16 @@ function ban4ip_init($TARGET_CONF)
     {
         // エラーメッセージに、BAN時間[s]の設定がない旨を設定
         $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s")." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] bantime is not set!? (".$TARGET_CONF['conf_file'].")"."\n";
+        // パラメータを戻す
+        return $TARGET_CONF;
     }
     // BAN時間[s]が数字ではないなら(もっと厳密にチェックする？)
     else if (!is_numeric($TARGET_CONF['bantime']))
     {
         // エラーメッセージに、BAN時間[s]の設定がない旨を設定
         $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s")." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] bantime is not integer!? (".$TARGET_CONF['conf_file'].")"."\n";
+        // パラメータを戻す
+        return $TARGET_CONF;
     }
     
     
@@ -169,6 +195,8 @@ function ban4ip_init($TARGET_CONF)
         {
             // エラーメッセージに、BAN時間[s]の設定がない旨を設定
             $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s")." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] ".$TARGET_CONF['target_protcol']." is not support protcol!? (".$TARGET_CONF['conf_file'].")"."\n";
+            // パラメータを戻す
+            return $TARGET_CONF;
         }
     }
     //対象ポートが設定されていないなら
@@ -187,7 +215,9 @@ function ban4ip_init($TARGET_CONF)
         {
             // エラーメッセージに、BAN時間[s]の設定がない旨を設定
             $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s")." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] ".$TARGET_CONF['target_protcol']." is not support port!? (".$TARGET_CONF['conf_file'].")"."\n";
-        }
+             // パラメータを戻す
+            return $TARGET_CONF;
+       }
     }
     //対象ポートが設定されていないなら
     else
@@ -203,12 +233,16 @@ function ban4ip_init($TARGET_CONF)
     {
         // エラーメッセージに、BAN時間[s]の設定がない旨を設定
         $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s")." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] Rule is not set!? (".$TARGET_CONF['conf_file'].")"."\n";
+        // パラメータを戻す
+        return $TARGET_CONF;
     }
     // 対象ルールが文字列指定だった場合、DROPでもREJECTでもLOGでもないなら
     else if (!is_string($TARGET_CONF['target_rule']) || ($TARGET_CONF['target_rule'] != 'DROP' && $TARGET_CONF['target_rule'] != 'REJECT' && $TARGET_CONF['target_rule'] != 'LOG'))
     {
         // エラーメッセージに、BAN時間[s]の設定がない旨を設定
         $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s")." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] Rule is not support rule!? (".$TARGET_CONF['conf_file'].")"."\n";
+        // パラメータを戻す
+        return $TARGET_CONF;
     }
     
     
@@ -218,6 +252,8 @@ function ban4ip_init($TARGET_CONF)
     {
         // エラーメッセージに、BAN時間[s]の設定がない旨を設定
         $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s")." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] target_service is not set!? (".$TARGET_CONF['conf_file'].")"."\n";
+        // パラメータを戻す
+        return $TARGET_CONF;
     }
     
     // 対象プロトコルと対象ポートが片方だけallなら
@@ -228,6 +264,8 @@ function ban4ip_init($TARGET_CONF)
     {
         // エラーメッセージに、BAN時間[s]の設定がない旨を設定
         $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s")." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] protcol(".$TARGET_CONF['target_protcol'].") and port(".$TARGET_CONF['target_port'].") mismatch!? (".$TARGET_CONF['conf_file'].")"."\n";
+        // パラメータを戻す
+        return $TARGET_CONF;
     }
     
     // --------------------------------
@@ -239,12 +277,16 @@ function ban4ip_init($TARGET_CONF)
     {
         // エラーメッセージに、UNIXソケットを開けない旨を設定
         $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s")." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] Cannot create socket!? (".$TARGET_CONF['conf_file'].")"."\n";
+        // パラメータを戻す
+        return $TARGET_CONF;
     }
     // UNIXソケットをノンブロッキングモードに変更できなかったら
     if (socket_set_nonblock($TARGET_CONF['socket']) == FALSE)
     {
         // エラーメッセージに、UNIXソケットをノンブロッキングモードに変更できない旨を設定
         $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s")." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] Cannot set nonblock socket!? (".$TARGET_CONF['conf_file'].")"."\n";
+        // パラメータを戻す
+        return $TARGET_CONF;
     }
     // UNIXソケットの接続を確立できるまで無限ループ(@をつけてエラー出力を抑制)
     while(@socket_connect($TARGET_CONF['socket'], $TARGET_CONF['socket_file']) == FALSE)
@@ -253,11 +295,25 @@ function ban4ip_init($TARGET_CONF)
         usleep(100000);
     }
     
+    // --------------------------------
+    
     // 対象ログがないなら
     if (!is_file($TARGET_CONF['target_log']))
     {
         // エラーメッセージに、対象ログが開けない旨を設定
         $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s")." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] Cannot find target_log!? (".$TARGET_CONF['conf_file'].")"."\n";
+        // パラメータを戻す
+        return $TARGET_CONF;
+    }
+    // 対象ログが読めない状態なら(ログローテートした可能性あり)
+    if (!is_readable($TARGET_CONF['target_log']))
+    {
+        // エラーメッセージに、対象ログが読めない旨を設定
+        $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s")." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] Cannot read target_log!? (".$TARGET_CONF['conf_file'].")"."\n";
+        // 100msくらいのウェイトを置く
+        usleep(100000);
+        // パラメータを戻す
+        return $TARGET_CONF;
     }
     // 対象ログを開く
     $TARGET_CONF['target_fp'] = fopen($TARGET_CONF['target_log'], "r");
@@ -266,6 +322,8 @@ function ban4ip_init($TARGET_CONF)
     {
         // エラーメッセージに、対象ログが開けない旨を設定
         $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s")." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] Cannot open target_log!? (".$TARGET_CONF['conf_file'].")"."\n";
+        // パラメータを戻す
+        return $TARGET_CONF;
     }
     
     // 対象ログの最後にシーク
@@ -275,6 +333,8 @@ function ban4ip_init($TARGET_CONF)
     {
         // エラーメッセージに、対象ログの最後にシークできない旨を設定
         $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s")." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] Cannot seek target_log!? (".$TARGET_CONF['conf_file'].")"."\n";
+        // パラメータを戻す
+        return $TARGET_CONF;
     }
     
     // inotifyモジュール初期化
@@ -284,6 +344,8 @@ function ban4ip_init($TARGET_CONF)
     {
         // エラーメッセージに、対象ログの最後にシークできない旨を設定
         $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s")." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] Failed to obtain an inotify instance!? (".$TARGET_CONF['conf_file'].")"."\n";
+        // パラメータを戻す
+        return $TARGET_CONF;
     }
     else
     {
@@ -295,6 +357,8 @@ function ban4ip_init($TARGET_CONF)
         {
             // エラーメッセージに、イベントを起こすように設定できない旨を設定
             $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s")." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] Cannot watch target_log!? (".$TARGET_CONF['conf_file'].")"."\n";
+            // パラメータを戻す
+            return $TARGET_CONF;
         }
     }
     // パラメータを戻す
@@ -318,8 +382,12 @@ function ban4ip_start($TARGET_CONF)
             print $TARGET_CONF['log_msg'];
             // 親プロセスに送信
             ban4ip_sendmsg($TARGET_CONF);
-            // 終わり
-            exit;
+            // loop_mode!=1なら、ログがない場合にはここで終わり
+            if ($TARGET_CONF['loop_mode'] != 1)
+            {
+                // 終わり
+                exit;
+            }
         }
         // 成功したら
         else
@@ -328,10 +396,10 @@ function ban4ip_start($TARGET_CONF)
             $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s")." ban4ip[".getmypid()."]: INFO [".$TARGET_CONF['target_service']."] Co-Process Start. (".$TARGET_CONF['conf_file'].")"."\n";
             // 親プロセスに送信
             ban4ip_sendmsg($TARGET_CONF);
+            
+            // 対象ログの監視＆BAN処理開始
+            $TARGET_CONF = ban4ip_loop($TARGET_CONF);
         }
-        // 対象ログの監視＆BAN処理開始
-        $TARGET_CONF = ban4ip_loop($TARGET_CONF);
-        
         // 対象ログの監視＆BAN処理の終了処理
         $TARGET_CONF = ban4ip_close($TARGET_CONF);
     }
