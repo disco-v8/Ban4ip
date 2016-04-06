@@ -16,6 +16,14 @@ function ban4ip_sendmsg($TARGET_CONF)
 {
     $FROM_SOCKET = '';
     
+    // UNIXソケットが開いていたら
+    if (!isset($TARGET_CONF['socket']) || !is_resource($TARGET_CONF['socket']))
+    {
+        // エラーメッセージに、親プロセスに送信できなかった旨を設定
+        print date("Y-m-d H:i:s")." ban4ip[".getmypid()."]: WARN [".$TARGET_CONF['target_service']."] Socket not open!? (".$TARGET_CONF['conf_file'].")"."\n";
+        // 戻る
+        return;
+    }
     // UNIXソケット経由でメッセージを親プロセスに送信
     $SOCK_RESULT = socket_send($TARGET_CONF['socket'], $TARGET_CONF['log_msg'], strlen($TARGET_CONF['log_msg']), 0);
     // もし送信できなかったら
@@ -23,16 +31,16 @@ function ban4ip_sendmsg($TARGET_CONF)
     {
         // エラーメッセージに、親プロセスに送信できなかった旨を設定
         print date("Y-m-d H:i:s")." ban4ip[".getmypid()."]: WARN [".$TARGET_CONF['target_service']."] Cannot send msg by socket!? (".$TARGET_CONF['conf_file'].")"."\n";
-        // 終わり
-        exit;
+        // 戻る
+        return;
     }
     // もしすべてを送信できなかったら
     else if ($SOCK_RESULT != strlen($TARGET_CONF['log_msg']))
     {
         // エラーメッセージに、親プロセスに全てを送信できなかった旨を設定
         print date("Y-m-d H:i:s")." ban4ip[".getmypid()."]: WARN [".$TARGET_CONF['target_service']."] Cannot send full msg by socket!? (".$TARGET_CONF['conf_file'].")"."\n";
-        // 終わり
-        exit;
+        // 戻る
+        return;
     }
 }
 ?>
@@ -45,7 +53,11 @@ function ban4ip_mailsend($TARGET_CONF)
     // メールタイトル初期化
     $MAIL_TITLE = $TARGET_CONF['mail_title']." [".$TARGET_CONF['target_service']."] Ban ".$TARGET_CONF['target_address'];
     // ホスト名が設定されているなら
-    if (isset($_SERVER["HOSTNAME"]))
+    if (isset($_ENV["HOSTNAME"]))
+    {
+        $MAIL_TITLE .= " from ".$_ENV["HOSTNAME"];
+    }
+    else if (isset($_SERVER["HOSTNAME"]))
     {
         $MAIL_TITLE .= " from ".$_SERVER["HOSTNAME"];
     }
@@ -115,6 +127,15 @@ function ban4ip_mailsend($TARGET_CONF)
 // ----------------------------------------------------------------------
 function ban4ip_ban($TARGET_CONF)
 {
+    // 対象IPアドレスを/で分割して配列に設定
+    // 対象IPアドレスがIPv4なら
+        // IPv4マスク値が設定されていて、/32以外(0～31)なら
+            // 対象IPアドレスにマスク値を追加したアドレス表記を、対象IPアドレスとする
+    // 対象IPアドレスがIPv6なら
+        // IPv6マスク値が設定されていて、/128以外(0～127)なら
+            // 対象IPアドレスにマスク値を追加したアドレス表記を、対象IPアドレスとする
+    
+    
     // 対象IPアドレスがIPv6なら(IPv6だったら文字列そのものが返ってくる)
     if (filter_var($TARGET_CONF['target_address'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== FALSE)
     {
