@@ -19,4 +19,5 @@
 ;                           Bug fix. (Do not call ban4ip_loop() when ERROR in ban4ip_start())
 ;                           Bug fix. (Move ban4ip_exec() to ban4ip_exec.php)
 ;                           Bug fix. (Add check proclist in ban4ip_end())
+; Ver.00.14    2016.04.06   Add systemd/ban4ip.service.
 ;
