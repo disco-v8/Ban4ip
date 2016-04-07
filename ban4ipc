@@ -40,7 +40,7 @@ require(__DIR__."/ban4ipd_exec.php");
 function ban4ip_optioncheck($BAN4IPD_CONF, $BAN4IPC_OPTIONS)
 {
     // 現在日時を設定
-    $BAN4IPD_CONF['logtime'] = time();
+    $BAN4IPD_CONF['logtime'] = local_time();
     
     // 必須パラメータ
     // 対象IPアドレス(--address)が設定されているなら
@@ -187,7 +187,7 @@ function ban4ip_optioncheck($BAN4IPD_CONF, $BAN4IPC_OPTIONS)
     if ($BAN4IPD_CONF['socket'] == FALSE )
     {
         // エラーメッセージに、UNIXソケットを開けない旨を設定
-        $ERR_MSG = date("Y-m-d H:i:s")." ban4ip[".getmypid()."]: WARN [".$BAN4IPD_CONF['target_service']."] Cannot create socket!? (".$BAN4IPD_CONF['conf_file'].")"."\n";
+        $ERR_MSG = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: WARN [".$BAN4IPD_CONF['target_service']."] Cannot create socket!? (".$BAN4IPD_CONF['conf_file'].")"."\n";
         print $ERR_MSG;
         // 終わり
         exit -1;
@@ -196,7 +196,7 @@ function ban4ip_optioncheck($BAN4IPD_CONF, $BAN4IPC_OPTIONS)
     if (socket_set_nonblock($BAN4IPD_CONF['socket']) == FALSE)
     {
         // エラーメッセージに、UNIXソケットをノンブロッキングモードに変更できない旨を設定
-        $ERR_MSG = date("Y-m-d H:i:s")." ban4ip[".getmypid()."]: WARN [".$BAN4IPD_CONF['target_service']."] Cannot set nonblock socket!? (".$BAN4IPD_CONF['conf_file'].")"."\n";
+        $ERR_MSG = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: WARN [".$BAN4IPD_CONF['target_service']."] Cannot set nonblock socket!? (".$BAN4IPD_CONF['conf_file'].")"."\n";
         print $ERR_MSG;
         // 終わり
         exit -1;
