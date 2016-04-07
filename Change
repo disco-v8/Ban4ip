@@ -20,4 +20,5 @@
 ;                           Bug fix. (Move ban4ip_exec() to ban4ip_exec.php)
 ;                           Bug fix. (Add check proclist in ban4ip_end())
 ; Ver.00.14    2016.04.06   Add systemd/ban4ip.service.
+; Ver.00.15    2016.04.07   Bug fix. (Add local_time(), write local time to log file)
 ;
