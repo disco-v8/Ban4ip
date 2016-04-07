@@ -280,11 +280,11 @@ function ban4ip_init($TARGET_CONF)
         // パラメータを戻す
         return $TARGET_CONF;
     }
-    // UNIXソケットをノンブロッキングモードに変更できなかったら
-    if (socket_set_nonblock($TARGET_CONF['socket']) == FALSE)
+    // UNIXソケットをブロックモードに変更できなかったら
+    if (socket_set_block($TARGET_CONF['socket']) == FALSE)
     {
-        // エラーメッセージに、UNIXソケットをノンブロッキングモードに変更できない旨を設定
-        $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] Cannot set nonblock socket!? (".$TARGET_CONF['conf_file'].")"."\n";
+        // エラーメッセージに、UNIXソケットをブロックモードモードに変更できない旨を設定
+        $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] Cannot set block socket!? (".$TARGET_CONF['conf_file'].")"."\n";
         // パラメータを戻す
         return $TARGET_CONF;
     }
