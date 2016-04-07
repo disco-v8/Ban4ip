@@ -31,6 +31,27 @@ $BAN4IPD_CONF['main_conf'] = '/etc/ban4ipd.conf';
 // ----------------------------------------------------------------------
 // Sub Routine
 // ----------------------------------------------------------------------
+function local_time()
+{
+    // Set system timezone
+    date_default_timezone_set(@date_default_timezone_get());
+    // Get local time
+    exec("/bin/date +'%Y/%m/%d %H:%M:%S'", $EXEC_RESULT, $EXEC_RETVAL);
+    // Complete
+    if ($EXEC_RETVAL == 0)
+    {
+        return strtotime($EXEC_RESULT[0]);
+    }
+    else
+    {
+        return time();
+    }
+}
+?>
+<?php
+// ----------------------------------------------------------------------
+// Sub Routine
+// ----------------------------------------------------------------------
 function psearch($PP, $PATTERN)
 {
     // リソース$PPから一行ずつ読み込む
