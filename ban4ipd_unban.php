@@ -28,7 +28,7 @@ function ban4ip_unban($TARGET_CONF)
     else
     {
         // 対象IPアドレスはBANの対象だけど、アドレスがおかしい旨のメッセージを設定
-        $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s")." ban4ip[".getmypid()."]: NOTICE [".$TARGET_CONF['target_service']."] Ban ".$TARGET_CONF['target_address']." (over ".$TARGET_CONF['maxretry']." counts) ";
+        $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: NOTICE [".$TARGET_CONF['target_service']."] Ban ".$TARGET_CONF['target_address']." (over ".$TARGET_CONF['maxretry']." counts) ";
         $TARGET_CONF['log_msg'] .= 'Illegal address!?'."\n";
         // BANデータベースから対象IPアドレス(とポートとルールが合致するもの)を削除
         $TARGET_CONF['ban_db']->exec("DELETE FROM ban_tbl WHERE address = '".$TARGET_CONF['target_address']."' AND protcol = '".$TARGET_CONF['target_protcol']."' AND port = '".$TARGET_CONF['target_port']."' AND rule = '".$TARGET_CONF['target_rule']."'");
@@ -57,12 +57,12 @@ function ban4ip_unban($TARGET_CONF)
                 // ban4ipチェインから対象BANを削除する
                 system($IPTABLES.' -D ban4ip --source '.$TARGET_CONF['target_address'].' --jump '.$TARGET_CONF['target_rule']);
                 // 対象IPアドレスをUNBANした旨を出力
-                $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s")." ban4ip[".getmypid()."]: NOTICE [".$TARGET_CONF['target_service']."] Unban ".$TARGET_CONF['target_address']."\n";
+                $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: NOTICE [".$TARGET_CONF['target_service']."] Unban ".$TARGET_CONF['target_address']."\n";
             }
             else
             {
                 // 対象IPアドレスがUNBANされている旨を出力
-                $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s")." ban4ip[".getmypid()."]: NOTICE [".$TARGET_CONF['target_service']."] Unbaned aleady ".$TARGET_CONF['target_address']."\n";
+                $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: NOTICE [".$TARGET_CONF['target_service']."] Unbaned aleady ".$TARGET_CONF['target_address']."\n";
             }
             pclose($PROC_P);
             
@@ -87,12 +87,12 @@ function ban4ip_unban($TARGET_CONF)
                 // ban4ipチェインから対象BANを削除する
                 system($IPTABLES.' -D ban4ip --source '.$TARGET_CONF['target_address'].' --proto '.$TARGET_CONF['target_protcol'].' --dport '.$TARGET_CONF['target_port'].' --jump '.$TARGET_CONF['target_rule']);
                 // 対象IPアドレスをUNBANした旨を出力
-                $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s")." ban4ip[".getmypid()."]: NOTICE [".$TARGET_CONF['target_service']."] Unban ".$TARGET_CONF['target_address']."\n";
+                $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: NOTICE [".$TARGET_CONF['target_service']."] Unban ".$TARGET_CONF['target_address']."\n";
             }
             else
             {
                 // 対象IPアドレスがUNBANされている旨を出力
-                $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s")." ban4ip[".getmypid()."]: NOTICE [".$TARGET_CONF['target_service']."] Unbaned aleady ".$TARGET_CONF['target_address']."\n";
+                $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: NOTICE [".$TARGET_CONF['target_service']."] Unbaned aleady ".$TARGET_CONF['target_address']."\n";
             }
             pclose($PROC_P);
             
@@ -102,7 +102,7 @@ function ban4ip_unban($TARGET_CONF)
         else
         {
             // 対象IPアドレスをUNBAN?した旨を出力
-            $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s")." ban4ip[".getmypid()."]: NOTICE [".$TARGET_CONF['target_service']."] Unban? ".$TARGET_CONF['target_address']."\n";
+            $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: NOTICE [".$TARGET_CONF['target_service']."] Unban? ".$TARGET_CONF['target_address']."\n";
         }
     }
     // BANデータベースから対象IPアドレス(とポートとルールが合致するもの)を削除
