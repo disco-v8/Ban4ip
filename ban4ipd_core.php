@@ -103,7 +103,7 @@ function ban4ip_end($signo)
             // PIDファイルを削除する
             unlink($BAN4IPD_CONF['pid_file']);
             
-            $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s")." ban4ip[".getmypid()."]: END"."\n";
+            $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: END"."\n";
             // ログに出力する
             log_write($BAN4IPD_CONF);
             // ログファイルポインタが開かれているなら
@@ -124,7 +124,7 @@ function ban4ip_end($signo)
             
             // 再読み込み要求(=1)を設定
             $BAN4IPD_CONF['reload'] = 1;
-            $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s")." ban4ip[".getmypid()."]: RELOAD"."\n";
+            $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: RELOAD"."\n";
             // ログに出力する
             log_write($BAN4IPD_CONF);
             // ログファイルポインタが開かれているなら
@@ -354,7 +354,7 @@ do // SIGHUPに対応したループ構造にしている
         $SOCK_EXCEPT_ARRAY = NULL;
         
         // 親プロセスの開始完了を出力
-        $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s")." ban4ip[".getmypid()."]: START"."\n";
+        $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: START"."\n";
         // ログに出力する
         log_write($BAN4IPD_CONF);
         
@@ -390,7 +390,7 @@ do // SIGHUPに対応したループ構造にしている
             // カウントデータベースから最大カウント時間を過ぎたデータをすべて削除(いわゆる削除漏れのゴミ掃除)
             $BAN4IPD_CONF['count_db']->exec("DELETE FROM count_tbl WHERE registdate < ".$BAN4IPD_CONF['maxfindtime']);
             // BANデータベースでBAN解除対象IPアドレスを取得
-            $RESULT = $BAN4IPD_CONF['ban_db']->query("SELECT * FROM ban_tbl WHERE unbandate < ".time());
+            $RESULT = $BAN4IPD_CONF['ban_db']->query("SELECT * FROM ban_tbl WHERE unbandate < ".local_time());
             // 該当データがあったらUNBANする
             while ($DB_DATA = $RESULT->fetchArray(SQLITE3_ASSOC))
             {
