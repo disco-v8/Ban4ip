@@ -43,6 +43,7 @@ mkdir /var/lib/ban4ip/
 
 cp ./ban4ipd.conf /etc/
 cp ./ban4ip/* /etc/ban4ip/
+
 cp ./ban4ipc /usr/bin/
 cp ./ban4ipd /usr/bin/
 cp ./ban4ipd_*.php /usr/bin/
@@ -65,8 +66,8 @@ Sub-config file...
     :
 target_service = 'apache-error'            ... only affects log message.
 target_log = '/var/log/httpd/error_log'    ... name of log file.
-target_protcol = 'tcp'                     ... BAN protcol.
-target_port = 80                           ... BAN port.
+target_protcol = 'tcp'                     ... BAN protcol. (tcp, udp, all)
+target_port = 80                           ... BAN port. (nnn or all)
 target_rule = 'DROP'                       ... BAN packet rule. (DROP, REJECT, LOG)
 
 target_str[] = '/error\] \[client (.*)\] client /'        ... (.) is target of BAN.
