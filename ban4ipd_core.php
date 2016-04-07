@@ -321,7 +321,7 @@ do // SIGHUPに対応したループ構造にしている
         // UNIXソケットが開けなかったら
         if ($BAN4IPD_CONF['socket'] == FALSE )
         {
-            // エラーメッセージに、プロセスをフォークできない旨を設定
+            // エラーメッセージに、UNIXソケットを開けない旨を設定
             $ERR_MSG = 'Cannot create socket'.'!?';
             // メッセージを表示
             print "\n".'ban4ipd ... '.$ERR_MSG."\n\n";
@@ -331,7 +331,7 @@ do // SIGHUPに対応したループ構造にしている
         // UNIXソケットとファイルがBINDできなかったら
         if (socket_bind($BAN4IPD_CONF['socket'], $BAN4IPD_CONF['socket_file']) == FALSE)
         {
-            // エラーメッセージに、プロセスをフォークできない旨を設定
+            // エラーメッセージに、UNIXソケットとファイルがBINDできない旨を設定
             $ERR_MSG = 'Cannot bind socket'.'!?';
             // メッセージを表示
             print "\n".'ban4ipd ... '.$ERR_MSG."\n\n";
@@ -339,10 +339,10 @@ do // SIGHUPに対応したループ構造にしている
             ban4ip_end(SIGTERM);
         }
         // UNIXソケットをノンブロッキングモードに変更できなかったら
-        if (socket_set_block($BAN4IPD_CONF['socket']) == FALSE)
+        if (socket_set_nonblock($BAN4IPD_CONF['socket']) == FALSE)
         {
-            // エラーメッセージに、プロセスをフォークできない旨を設定
-            $ERR_MSG = 'Cannot set block socket'.'!?';
+            // エラーメッセージに、UNIXソケットをノンブロッキングモードに変更できない旨を設定
+            $ERR_MSG = 'Cannot set non block socket'.'!?';
             // メッセージを表示
             print "\n".'ban4ipd ... '.$ERR_MSG."\n\n";
             // 終わり
