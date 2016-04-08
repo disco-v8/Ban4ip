@@ -23,4 +23,5 @@
 ; Ver.00.15    2016.04.07   Bug fix. (Add local_time(), write local time to log file)
 ;                           Bug fix. (socket_set_block() -> socket_set_nonblock in ban4ipd_core.php)
 ;                           Bug fix. (socket_set_nonblock() -> socket_set_block in ban4ipd_sub.php)
+; Ver.00.16    2016.04.08   Change local_time() logic. (more simple)
 ;
