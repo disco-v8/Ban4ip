@@ -12,10 +12,40 @@
 // ----------------------------------------------------------------------
 // Init Routine
 // ----------------------------------------------------------------------
-// 環境変数を設定する
-// タイムゾーン
-//date_default_timezone_set('Asia/Tokyo');
-date_default_timezone_set(@date_default_timezone_get());
+// 環境変数などを設定する
+// 時刻オフセット初期化
+$TIME_OFFSET = 0;
+
+// Cannot find timezone
+if (ini_get('date.timezone') == FALSE)
+{
+    // Set system timezone to UTC
+    date_default_timezone_set(@date_default_timezone_get());
+    
+    // Get system time
+    exec("/bin/date +'%Y/%m/%d %H:%M:%S'", $EXEC_RESULT, $EXEC_RETVAL);
+    // Complete
+    if ($EXEC_RETVAL == 0)
+    {
+        // Get difference between the values of system time and PHP time
+        $TIME_OFFSET = strtotime($EXEC_RESULT[0]) - time();
+        
+        // Set offset time if it is more than 60sec
+        if ($TIME_OFFSET && ($TIME_OFFSET % 60) == 0)
+        {
+        }
+        else if ($TIME_OFFSET > 0)
+        {
+            // Set time offset in minutes
+            $TIME_OFFSET += (60 - ($TIME_OFFSET % 60));
+        }
+        else if ($TIME_OFFSET < 0)
+        {
+            // Set time offset in minutes
+            $TIME_OFFSET -= ($TIME_OFFSET % 60);
+        }
+    }
+}
 
 // 内部文字コード
 mb_internal_encoding('UTF-8');
@@ -33,19 +63,8 @@ $BAN4IPD_CONF['main_conf'] = '/etc/ban4ipd.conf';
 // ----------------------------------------------------------------------
 function local_time()
 {
-    // Set system timezone
-    date_default_timezone_set(@date_default_timezone_get());
-    // Get local time
-    exec("/bin/date +'%Y/%m/%d %H:%M:%S'", $EXEC_RESULT, $EXEC_RETVAL);
-    // Complete
-    if ($EXEC_RETVAL == 0)
-    {
-        return strtotime($EXEC_RESULT[0]);
-    }
-    else
-    {
-        return time();
-    }
+    global $TIME_OFFSET;
+    return(time() + $TIME_OFFSET);
 }
 ?>
 <?php
