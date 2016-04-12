@@ -56,14 +56,15 @@ function ban4ip_optioncheck($BAN4IPD_CONF, $BAN4IPC_OPTIONS)
         // 終わり
         exit -1;
     }
+    // 対象IPアドレスを/で分割して配列に設定
+    $TARGET_ADDRESS = explode("/", $BAN4IPD_CONF['target_address']);
     // 対象IPアドレスがIPアドレスでないなら
-    if (filter_var($BAN4IPD_CONF['target_address'], FILTER_VALIDATE_IP) === FALSE)
+    if (filter_var($TARGET_ADDRESS[0], FILTER_VALIDATE_IP) === FALSE)
     {
         print $BAN4IPD_CONF['target_address']." is not IP address!?"."\n";
         // 終わり
         exit -1;
     }
-    
     
     // BAN時間[s](--bantime)が設定されているなら
     if (isset($BAN4IPC_OPTIONS['bantime']))
@@ -178,7 +179,7 @@ function ban4ip_optioncheck($BAN4IPD_CONF, $BAN4IPC_OPTIONS)
     if ($BAN4IPD_CONF['hostname_lookup'] == 1)
     {
         // 対象IPアドレスから対象ホスト名を取得して設定
-        $BAN4IPD_CONF['target_hostname'] = gethostbyaddr($BAN4IPD_CONF['target_address']);
+        $BAN4IPD_CONF['target_hostname'] = gethostbyaddr($TARGET_ADDRESS[0]);
     }
     
     // UNIXソケットを開く
@@ -297,59 +298,48 @@ switch($argv[1])
         // 終わり
         exit;
     case "stop" :
+        // ban4ipdプロセスをすべてkillする
+        exec('/usr/bin/killall ban4ipd');
         // PIDファイルがあれば
         if (is_file($BAN4IPD_CONF['pid_file']))
         {
-            // ban4ipdのプロセス番号(PID)を取得する
-            $PID_FP = fopen($BAN4IPD_CONF['pid_file'], "r");
-            $PID = fgets($PID_FP);
-            fclose($PID_FP);
-            
-            // PIDファイルに書かれているプロセスにSIGTERMを送る
-            posix_kill($PID, SIGTERM);
-            print 'ban4ipd stop'."\n";
+            // PIDファイルを削除する
+            unlink($BAN4IPD_CONF['pid_file']);
         }
-        else
+        // ソケットファイルがあれば
+        if (is_file($BAN4IPD_CONF['socket_file']))
         {
-            print 'Cannot find '.$BAN4IPD_CONF['pid_file']."\n";
+            // ソケットファイルを削除する
+            unlink($BAN4IPD_CONF['socket_file']);
         }
+        print 'ban4ipd stop'."\n";
         // 終わり
         exit;
     case "restart" :
+        // ban4ipdプロセスをすべてkillする
+        exec('/usr/bin/killall ban4ipd');
         // PIDファイルがあれば
         if (is_file($BAN4IPD_CONF['pid_file']))
         {
-            // ban4ipdのプロセス番号(PID)を取得する
-            $PID_FP = fopen($BAN4IPD_CONF['pid_file'], "r");
-            $PID = fgets($PID_FP);
-            fclose($PID_FP);
-            
-            // PIDファイルに書かれているプロセスにSIGTERMを送る
-            posix_kill($PID, SIGTERM);
+            // PIDファイルを削除する
+            unlink($BAN4IPD_CONF['pid_file']);
+        }
+        // ソケットファイルがあれば
+        if (is_file($BAN4IPD_CONF['socket_file']))
+        {
+            // ソケットファイルを削除する
+            unlink($BAN4IPD_CONF['socket_file']);
         }
         // 少し待ってから
-        usleep(500000);
+        usleep(100000);
         // ban4ipdを起動
         exec(__DIR__.'/ban4ipd > /dev/null &');
         print 'ban4ipd restart ... Please check LOG file.'."\n";
         // 終わり
         exit;
     case "reload" :
-        // PIDファイルがあれば
-        if (is_file($BAN4IPD_CONF['pid_file']))
-        {
-            // ban4ipdのプロセス番号(PID)を取得する
-            $PID_FP = fopen($BAN4IPD_CONF['pid_file'], "r");
-            $PID = fgets($PID_FP);
-            fclose($PID_FP);
-            
-            // PIDファイルに書かれているプロセスにSIGHUPを送る
-            posix_kill($PID, SIGHUP);
-        }
-        else
-        {
-            print 'Cannot find '.$BAN4IPD_CONF['pid_file']."\n";
-        }
+        // ban4ipdプロセスをすべてkillする
+        exec('/usr/bin/killall -s SIGHUP ban4ipd');
         print 'ban4ipd reload ... Please check LOG file.'."\n";
         // 終わり
         exit;
