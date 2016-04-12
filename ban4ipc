@@ -299,7 +299,7 @@ switch($argv[1])
         exit;
     case "stop" :
         // ban4ipdプロセスをすべてkillする
-        exec('/usr/bin/killall ban4ipd');
+        exec('/usr/bin/killall -s SIGTERM ban4ipd');
         // PIDファイルがあれば
         if (is_file($BAN4IPD_CONF['pid_file']))
         {
@@ -317,7 +317,7 @@ switch($argv[1])
         exit;
     case "restart" :
         // ban4ipdプロセスをすべてkillする
-        exec('/usr/bin/killall ban4ipd');
+        exec('/usr/bin/killall -s SIGTERM ban4ipd');
         // PIDファイルがあれば
         if (is_file($BAN4IPD_CONF['pid_file']))
         {
