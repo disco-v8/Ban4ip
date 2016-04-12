@@ -127,6 +127,11 @@ php-pdo (SQLite3)をインストールしてください。
 SQLite3のデータベースのロックが他のプロセスでかかったまま一定時間を経過してしまった場合に発生。
 db_timeoutの値を伸ばしてみるといいかも。(デフォルトは500ms…これでも結構長いと思うんだけど)
 
+"The user limit on the total number of inotify instances has been reached"
+"Failed to obtain an inotify instance!?"
+
+申し訳ありませんが、監視対象ログが多すぎるので減らしてください。(つまり、.confを減らす)
+
 
 ＃以下日本語だけの技術メモ
 
@@ -140,7 +145,6 @@ db_timeoutの値を伸ばしてみるといいかも。(デフォルトは500ms�
 　cp ./ban4ipd_*.php /usr/bin/
 　コピーして、必要に応じて設定(conf)ファイルを修正すればOK
 ・PHPのポリシーによりsystemd配下ではUTCによる処理になっていたので、サーバーのローカルタイム(local_time())を取得する処理を追加した
-
 
 
 ライセンス: 
