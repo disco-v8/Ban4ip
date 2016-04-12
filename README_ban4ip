@@ -120,7 +120,12 @@ Memo:
 "PHP Warning:  SQLite3::exec(): database is locked in ..."
 
  -> It is so heavy?! extend db_timeout's value in ban4ipd.conf.
- 
+
+"The user limit on the total number of inotify instances has been reached"
+"Failed to obtain an inotify instance!?"
+
+ -> Sorry, You should reduce config file. (= target log).
+
 
 License:
 
