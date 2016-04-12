@@ -18,6 +18,114 @@ require(__DIR__."/ban4ipd_ban.php");
 // ----------------------------------------------------------------------
 // Sub Routine
 // ----------------------------------------------------------------------
+function get_networkaddr($IP_ADDR, $IP_MASK)
+{
+    // 対象IPアドレスをバイナリ形式に変換
+    $ADDR['pack'] = inet_pton($IP_ADDR);
+    // バイナリ形式に変換できなかったら
+    if ($ADDR['pack'] == FALSE)
+    {
+        // 戻る
+        return FALSE;
+    }
+    
+    // 対象IPアドレスがIPv6なら(IPv6だったら文字列そのものが返ってくる)
+    if (filter_var($IP_ADDR, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== FALSE)
+    {
+        // IPv6なのに、マスク値が0～128でなかったら
+        if ($IP_MASK < 0 || $IP_MASK > 128)
+        {
+            // 戻る
+            return FALSE;
+        }
+        $ADDR['ip_mask'] = $IP_MASK;
+        $ADDR['unpack'] = unpack("n8", $ADDR['pack']);
+        // ビットマスクする単位(IPv4=8, IPv6=16)
+        $ADDR['pack_len'] = 16;
+        // ビットマスク長(IPv4=32, IPv6=128)
+        $ADDR['mask_len'] = 128;
+        // セパレータ(IPv4=., IPv6=:)
+        $ADDR['separator'] = ':';
+    }
+    // 対象IPアドレスがIPv4なら(IPv4だったら文字列そのものが返ってくる)
+    else if (filter_var($IP_ADDR, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== FALSE)
+    {
+        // IPv6なのに、マスク値が0～32でなかったら
+        if ($IP_MASK < 0 || $IP_MASK > 32)
+        {
+            // 戻る
+            return FALSE;
+        }
+        $ADDR['ip_mask'] = $IP_MASK;
+        $ADDR['unpack'] = unpack("C4", $ADDR['pack']);
+        // ビットマスクする単位(IPv4=8, IPv6=16)
+        $ADDR['pack_len'] = 8;
+        // ビットマスク長(IPv4=32, IPv6=128)
+        $ADDR['mask_len'] = 32;
+        // セパレータ(IPv4=., IPv6=:)
+        $ADDR['separator'] = '.';
+    }
+    else
+    {
+        // 戻る
+        return FALSE;
+    }
+    
+    // マスク対象カウント初期化
+    $pack_num = 1;
+    // マスクの残ビットにビットマスク長を設定、残ビットが0よりあるならループ継続、継続する場合には残ビットからマスク単位を引く
+    for ($MASK = $ADDR['mask_len']; $MASK > 0; $MASK -= $ADDR['pack_len'])
+    {
+        // 残ビットがマスク単位より大きいなら
+        if ($ADDR['ip_mask'] > $ADDR['pack_len'])
+        {
+            // マスク
+            $ADDR['unpack'][$pack_num] &= (pow(2, $ADDR['pack_len']) - 1);
+            // 残ビットからマスク単位を引く
+            $ADDR['ip_mask'] -= $ADDR['pack_len'];
+        }
+        // 残ビットがマスク単位と同じか小さいなら
+        else
+        {
+            // マスク
+            $ADDR['unpack'][$pack_num] &= ((pow(2, $ADDR['pack_len']) -1) ^ (pow(2, $ADDR['pack_len'] - $ADDR['ip_mask']) -1));
+            // 残ビットを0にする
+            $ADDR['ip_mask'] = 0;
+        }
+        // マスク対象カウント加算
+        $pack_num ++;
+    }
+    
+    $NETWORK_ADDR = "";
+    // 対象IPアドレスがIPv6なら(IPv6だったら文字列そのものが返ってくる)
+    if (filter_var($IP_ADDR, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== FALSE)
+    {
+        foreach ($ADDR['unpack'] as $IP_D)
+        {
+            $NETWORK_ADDR .= dechex($IP_D).$ADDR['separator'];
+        }
+    }
+    // 対象IPアドレスがIPv4なら(IPv4だったら文字列そのものが返ってくる)
+    else if (filter_var($IP_ADDR, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== FALSE)
+    {
+        foreach ($ADDR['unpack'] as $IP_D)
+        {
+            $NETWORK_ADDR .= $IP_D.$ADDR['separator'];
+        }
+    }
+    // 最後のseparatorを取り除く
+    $NETWORK_ADDR = rtrim($NETWORK_ADDR, $ADDR['separator']);
+    // 対象IPアドレスを省略形にして、ネットマスクをつける(ip6tables対策)
+    $NETWORK_ADDR = inet_ntop(inet_pton($NETWORK_ADDR)).'/'.$IP_MASK;
+    
+    // ネットワークアドレスを返して戻る
+    return $NETWORK_ADDR;
+}
+?>
+<?php
+// ----------------------------------------------------------------------
+// Sub Routine
+// ----------------------------------------------------------------------
 function ban4ip_close($TARGET_CONF)
 {
     // UNIXソケットが開いていたら
@@ -109,13 +217,38 @@ function ban4ip_loop($TARGET_CONF)
                                     $TARGET_CONF['target_hostname'] = gethostbyaddr($TARGET_CONF['target_address']);
                                 }
                                 
-                                // 対象IPアドレスがIPv6なら
+                                // 対象IPアドレスがIPv6なら(IPv6だったら文字列そのものが返ってくる)
+                                if (filter_var($TARGET_CONF['target_address'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== FALSE)
+                                {
                                     // IPv6マスク値が設定されていて、/128以外(0～127)なら
-                                        // 対象IPアドレスにマスク値を追加したアドレス表記を、対象IPアドレスとする
-                                
-                                // 対象IPアドレスがIPv4なら
+                                    if (isset($TARGET_CONF['ipv6_netmask']) && ($TARGET_CONF['ipv6_netmask'] >= 0 && $TARGET_CONF['ipv6_netmask'] < 128))
+                                    {
+                                        // 対象IPアドレスにマスク値を追加したアドレス表記を、対象ネットワークアドレスとする
+                                        $TARGET_ADDRESS = get_networkaddr($TARGET_CONF['target_address'], $TARGET_CONF['ipv6_netmask']);
+                                        // 対象ネットワークアドレスが正常に取得できたなら
+                                        if ($TARGET_ADDRESS != FALSE)
+                                        {
+                                            // 対象ネットワークアドレスを対象IPアドレスとして設定
+                                            $TARGET_CONF['target_address'] = $TARGET_ADDRESS;
+                                        }
+                                    }
+                                }
+                                // 対象IPアドレスがIPv4なら(IPv4だったら文字列そのものが返ってくる)
+                                else if (filter_var($TARGET_CONF['target_address'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== FALSE)
+                                {
                                     // IPv4マスク値が設定されていて、/32以外(0～31)なら
-                                        // 対象IPアドレスにマスク値を追加したアドレス表記を、対象IPアドレスとする
+                                    if (isset($TARGET_CONF['ipv4_netmask']) && ($TARGET_CONF['ipv4_netmask'] >= 0 && $TARGET_CONF['ipv4_netmask'] < 32))
+                                    {
+                                        // 対象IPアドレスにマスク値を追加したアドレス表記を、対象ネットワークアドレスとする
+                                        $TARGET_ADDRESS = get_networkaddr($TARGET_CONF['target_address'], $TARGET_CONF['ipv4_netmask']);
+                                        // 対象ネットワークアドレスが正常に取得できたなら
+                                        if ($TARGET_ADDRESS != FALSE)
+                                        {
+                                            // 対象ネットワークアドレスを対象IPアドレスとして設定
+                                            $TARGET_CONF['target_address'] = $TARGET_ADDRESS;
+                                        }
+                                    }
+                                }
                                 
                                 // カウントデータベースから該当サービスの現在時刻 - 対象時間より昔のカウントデータを削除
                                 $TARGET_CONF['count_db']->exec("DELETE FROM count_tbl WHERE service = '".$TARGET_CONF['target_service']."' AND registdate < (".(local_time() - $TARGET_CONF['findtime']).")");
