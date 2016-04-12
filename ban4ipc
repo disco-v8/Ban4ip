@@ -299,7 +299,9 @@ switch($argv[1])
         exit;
     case "stop" :
         // ban4ipdプロセスをすべてkillする
-        exec('/usr/bin/killall -s SIGTERM ban4ipd');
+        exec('/usr/bin/killall ban4ipd');
+        // 少し待ってから
+        usleep(100000);
         // PIDファイルがあれば
         if (is_file($BAN4IPD_CONF['pid_file']))
         {
@@ -317,7 +319,9 @@ switch($argv[1])
         exit;
     case "restart" :
         // ban4ipdプロセスをすべてkillする
-        exec('/usr/bin/killall -s SIGTERM ban4ipd');
+        exec('/usr/bin/killall ban4ipd');
+        // 少し待ってから
+        usleep(100000);
         // PIDファイルがあれば
         if (is_file($BAN4IPD_CONF['pid_file']))
         {
@@ -330,8 +334,6 @@ switch($argv[1])
             // ソケットファイルを削除する
             unlink($BAN4IPD_CONF['socket_file']);
         }
-        // 少し待ってから
-        usleep(100000);
         // ban4ipdを起動
         exec(__DIR__.'/ban4ipd > /dev/null &');
         print 'ban4ipd restart ... Please check LOG file.'."\n";
