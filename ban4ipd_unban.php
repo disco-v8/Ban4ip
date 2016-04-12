@@ -14,13 +14,15 @@
 // ----------------------------------------------------------------------
 function ban4ip_unban($TARGET_CONF)
 {
+    // 対象IPアドレスを/で分割して配列に設定
+    $TARGET_ADDRESS = explode("/", $TARGET_CONF['target_address']);
     // 対象IPアドレスがIPv6なら(IPv6だったら文字列そのものが返ってくる)
-    if (filter_var($TARGET_CONF['target_address'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== FALSE)
+    if (filter_var($TARGET_ADDRESS[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== FALSE)
     {
         $IPTABLES = $TARGET_CONF['ip6tables'];
     }
     // 対象IPアドレスがIPv4なら(IPv4だったら文字列そのものが返ってくる)
-    else if (filter_var($TARGET_CONF['target_address'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== FALSE)
+    else if (filter_var($TARGET_ADDRESS[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== FALSE)
     {
         $IPTABLES = $TARGET_CONF['iptables'];
     }
@@ -50,7 +52,7 @@ function ban4ip_unban($TARGET_CONF)
             
             // ban4ipチェインの設定を取得する
             $PROC_P = popen($IPTABLES." -L ban4ip -n", "r");
-            $TARGET_PATTERN = '/^'.$TARGET_CONF['target_rule'].' .* '.$TARGET_CONF['target_address'].'.* $/';
+            $TARGET_PATTERN = '/^'.$TARGET_CONF['target_rule'].' .* '.preg_replace('/\//', '\/', $TARGET_CONF['target_address']).'.* $/';
             // ban4ipチェインに該当ルールがあるなら
             if (psearch($PROC_P, $TARGET_PATTERN) == TRUE)
             {
@@ -80,7 +82,7 @@ function ban4ip_unban($TARGET_CONF)
             
             // ban4ipチェインの設定を取得する
             $PROC_P = popen($IPTABLES." -L ban4ip -n", "r");
-            $TARGET_PATTERN = '/^'.$TARGET_CONF['target_rule'].' .* '.$TARGET_CONF['target_address'].'.* '.$TARGET_CONF['target_protcol'].' dpt:'.$TARGET_CONF['target_port'].' $/';
+            $TARGET_PATTERN = '/^'.$TARGET_CONF['target_rule'].' .* '.preg_replace('/\//', '\/', $TARGET_CONF['target_address']).'.* '.$TARGET_CONF['target_protcol'].' dpt:'.$TARGET_CONF['target_port'].' $/';
             // ban4ipチェインに該当ルールがあるなら
             if (psearch($PROC_P, $TARGET_PATTERN) == TRUE)
             {
