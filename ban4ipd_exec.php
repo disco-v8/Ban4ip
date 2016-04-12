@@ -48,7 +48,6 @@ function ban4ip_exec($BAN4IPD_CONF, $TARGET_CMD)
         return $BAN4IPD_CONF;
     }
     // 指定されたコマンドを実行
-///    $RESULT = system($BAN4IPD_CONF[$TARGET_CMD]);
     $RESULT = system($BAN4IPD_CONF[$TARGET_CMD].' --source '.$TARGET_CONF['target_address'].' --proto '.$TARGET_CONF['target_protcol'].' --dport '.$TARGET_CONF['target_port'].' --jump '.$TARGET_CONF['target_rule']);
     
     // 指定されたコマンドを実行した旨のメッセージを設定
