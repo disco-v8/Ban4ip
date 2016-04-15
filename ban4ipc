@@ -309,7 +309,7 @@ switch($argv[1])
             unlink($BAN4IPD_CONF['pid_file']);
         }
         // ソケットファイルがあれば
-        if (is_file($BAN4IPD_CONF['socket_file']))
+        if (is_executable($BAN4IPD_CONF['socket_file']))
         {
             // ソケットファイルを削除する
             unlink($BAN4IPD_CONF['socket_file']);
@@ -329,7 +329,7 @@ switch($argv[1])
             unlink($BAN4IPD_CONF['pid_file']);
         }
         // ソケットファイルがあれば
-        if (is_file($BAN4IPD_CONF['socket_file']))
+        if (is_executable($BAN4IPD_CONF['socket_file']))
         {
             // ソケットファイルを削除する
             unlink($BAN4IPD_CONF['socket_file']);
