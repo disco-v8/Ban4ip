@@ -26,4 +26,9 @@
 ; Ver.00.16    2016.04.08   Change local_time() logic. (more simple)
 ; Ver.00.17    2016.04.11   Change start, stop, restart, reload logic. (more simple, in ban4ipc)
 ; Ver.00.18    2016.04.12   Add netmask mode (new! "ipv4_netmask", "ipv6_netmask")
+; Ver.00.19    2016.04.13   Change db_timeout defaults value. (500 -> 5000)
+; Ver.00.20    2016.04.14   Bug fix. (Add check UNIX socket resource in ban4ip_end())
+;                           Bug fix. (Add check PID file in ban4ip_end())
+;                           Bug fix. (socket_file check, is_file() -> is_executable())
+; Ver.00.21    2016.04.15   Bug fix. (Add check query RESULT in ban4ipd_core.php)
 ;
