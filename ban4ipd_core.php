@@ -86,10 +86,14 @@ function ban4ip_end($signo)
         case SIGINT:
         // SIGTERMなら
         case SIGTERM:
-            // UNIXソケットを閉じる
-            socket_close($BAN4IPD_CONF['socket']);
-            // ソケットファイルを削除する
-            unlink($BAN4IPD_CONF['socket_file']);
+            // ソケットファイルがあれば
+            if (is_executable($BAN4IPD_CONF['socket_file']))
+            {
+                // UNIXソケットを閉じる
+                socket_close($BAN4IPD_CONF['socket']);
+                // ソケットファイルを削除する
+                unlink($BAN4IPD_CONF['socket_file']);
+            }
             
             // iptablesからban4ipチェインを削除する
             system($BAN4IPD_CONF['iptables'].' -D INPUT -j ban4ip');
@@ -100,8 +104,12 @@ function ban4ip_end($signo)
             system($BAN4IPD_CONF['ip6tables'].' -F ban4ip');
             system($BAN4IPD_CONF['ip6tables'].' -X ban4ip');
             
-            // PIDファイルを削除する
-            unlink($BAN4IPD_CONF['pid_file']);
+            // PIDファイルがあれば
+            if (is_file($BAN4IPD_CONF['pid_file']))
+            {
+                // PIDファイルを削除する
+                unlink($BAN4IPD_CONF['pid_file']);
+            }
             
             $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: END"."\n";
             // ログに出力する
@@ -117,10 +125,14 @@ function ban4ip_end($signo)
             break;
         // SIGHUPなら
         case SIGHUP:
-            // UNIXソケットを閉じる
-            socket_close($BAN4IPD_CONF['socket']);
-            // ソケットファイルを削除する
-            unlink($BAN4IPD_CONF['socket_file']);
+            // ソケットファイルがあれば
+            if (is_executable($BAN4IPD_CONF['socket_file']))
+            {
+                // UNIXソケットを閉じる
+                socket_close($BAN4IPD_CONF['socket']);
+                // ソケットファイルを削除する
+                unlink($BAN4IPD_CONF['socket_file']);
+            }
             
             // 再読み込み要求(=1)を設定
             $BAN4IPD_CONF['reload'] = 1;
@@ -314,8 +326,6 @@ do // SIGHUPに対応したループ構造にしている
         pcntl_signal(SIGTERM, "ban4ip_end");
         pcntl_signal(SIGHUP,  "ban4ip_end");
         
-        
-        
         // 親プロセスとしてUNIXソケットを開く
         $BAN4IPD_CONF['socket'] = socket_create(AF_UNIX, SOCK_DGRAM, 0);
         // UNIXソケットが開けなかったら
@@ -371,8 +381,11 @@ do // SIGHUPに対応したループ構造にしている
             $EXCEPT_ARRAY = $SOCK_EXCEPT_ARRAY;
             $SOCK_RESULT = @socket_select($READ_ARRAY, $WRITE_ARRAY, $EXCEPT_ARRAY, $BAN4IPD_CONF['unbantime']);
             // UNIXソケットの変化が取得できないなら
-            if ($SOCK_RESULT === false)
+            if ($SOCK_RESULT === FALSE)
             {
+                $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR "." Cannot socket_select!? (".socket_strerror(socket_last_error()).")"."\n";
+                // ログに出力する
+                log_write($BAN4IPD_CONF);
             }
             // UNIXソケットに変化がないなら
             else if ($SOCK_RESULT == 0)
@@ -383,26 +396,48 @@ do // SIGHUPに対応したループ構造にしている
             {
                 // ソケットからデータを受信して、ログメッセージに設定
                 $SOCK_RESULT = socket_recvfrom($BAN4IPD_CONF['socket'], $BAN4IPD_CONF['log_msg'], 255, 0, $SOCK_FROM);
-                // ログに出力する
-                log_write($BAN4IPD_CONF);
+                // データの受信ができたなら
+                if ($SOCK_RESULT != FALSE)
+                {
+                    // ログに出力する
+                    log_write($BAN4IPD_CONF);
+                }
+                // できなかったら
+                else
+                {
+                    $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR "." Cannot socket_recvfrom!? (".socket_strerror(socket_last_error()).")"."\n";
+                    // ログに出力する
+                    log_write($BAN4IPD_CONF);
+                }
             }
             
             // カウントデータベースから最大カウント時間を過ぎたデータをすべて削除(いわゆる削除漏れのゴミ掃除)
             $BAN4IPD_CONF['count_db']->exec("DELETE FROM count_tbl WHERE registdate < ".$BAN4IPD_CONF['maxfindtime']);
             // BANデータベースでBAN解除対象IPアドレスを取得
             $RESULT = $BAN4IPD_CONF['ban_db']->query("SELECT * FROM ban_tbl WHERE unbandate < ".local_time());
-            // 該当データがあったらUNBANする
-            while ($DB_DATA = $RESULT->fetchArray(SQLITE3_ASSOC))
+            // BAN解除対象IPアドレスの取得ができなかったら
+            if ($RESULT === FALSE)
             {
-                // UNBANする
-                $BAN4IPD_CONF['target_address'] = $DB_DATA['address'];
-                $BAN4IPD_CONF['target_service'] = $DB_DATA['service'];
-                $BAN4IPD_CONF['target_protcol'] = $DB_DATA['protcol'];
-                $BAN4IPD_CONF['target_port'] = $DB_DATA['port'];
-                $BAN4IPD_CONF['target_rule'] = $DB_DATA['rule'];
-                $BAN4IPD_CONF = ban4ip_unban($BAN4IPD_CONF);
+                $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR "." Cannot query!? (".socket_strerror(socket_last_error()).")"."\n";
                 // ログに出力する
                 log_write($BAN4IPD_CONF);
+            }
+            // BAN解除対象IPアドレスの取得ができたら
+            else
+            {
+                // 該当データがあったらUNBANする
+                while ($DB_DATA = $RESULT->fetchArray(SQLITE3_ASSOC))
+                {
+                    // UNBANする
+                    $BAN4IPD_CONF['target_address'] = $DB_DATA['address'];
+                    $BAN4IPD_CONF['target_service'] = $DB_DATA['service'];
+                    $BAN4IPD_CONF['target_protcol'] = $DB_DATA['protcol'];
+                    $BAN4IPD_CONF['target_port'] = $DB_DATA['port'];
+                    $BAN4IPD_CONF['target_rule'] = $DB_DATA['rule'];
+                    $BAN4IPD_CONF = ban4ip_unban($BAN4IPD_CONF);
+                    // ログに出力する
+                    log_write($BAN4IPD_CONF);
+                }
             }
         }
         
