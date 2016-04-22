@@ -126,6 +126,70 @@ function get_networkaddr($IP_ADDR, $IP_MASK)
 // ----------------------------------------------------------------------
 // Sub Routine
 // ----------------------------------------------------------------------
+function check_safeaddr($TARGET_CONF)
+{
+    // ホワイトリスト設定がないなら
+    if (!isset($TARGET_CONF['safe_address']) || !is_array($TARGET_CONF['safe_address']))
+    {
+        // 戻る(対象IPアドレスはホワイトリストに含まれていない)
+        return FALSE;
+    }
+    
+    $TARGET_ADDRESS = $TARGET_CONF['target_address'];
+    // 対象IPアドレスがホワイトリストの中にあるかどうか確認
+    foreach ($TARGET_CONF['safe_address'] as $SAFE_ADDRESS)
+    {
+        // ホワイトIPアドレスを/で分割して配列に設定
+        $SAFE_ADDRESS = explode("/", $SAFE_ADDRESS);
+        // 対象IPアドレスもホワイトIPアドレスもIPv6なら(IPv6だったら文字列そのものが返ってくる)
+        if ((filter_var($TARGET_CONF['target_address'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== FALSE) &&
+            (filter_var($SAFE_ADDRESS[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== FALSE))
+        {
+            // ホワイトIPアドレスがネットワークアドレス指定なら、
+            if (isset($SAFE_ADDRESS[1]) && ($SAFE_ADDRESS[1] >= 0 && $SAFE_ADDRESS[1] < 128))
+            {
+                // 対象IPアドレスとホワイトIPアドレスのネットワークアドレスを取得
+                $TARGET_ADDRESS = get_networkaddr($TARGET_CONF['target_address'], $SAFE_ADDRESS[1]);
+                $SAFE_ADDRESS = get_networkaddr($SAFE_ADDRESS[0], $SAFE_ADDRESS[1]);
+            }
+            // でなければ、そのまま比較対象とする
+            else
+            {
+                $SAFE_ADDRESS = $SAFE_ADDRESS[0];
+            }
+        }
+        // 対象IPアドレスもホワイトIPアドレスもIPv4なら(IPv4だったら文字列そのものが返ってくる)
+        else if ((filter_var($TARGET_CONF['target_address'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== FALSE) &&
+                 (filter_var($SAFE_ADDRESS[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== FALSE))
+        {
+            // ホワイトIPアドレスがネットワークアドレス指定なら、
+            if (isset($SAFE_ADDRESS[1]) && ($SAFE_ADDRESS[1] >= 0 && $SAFE_ADDRESS[1] < 32))
+            {
+                // 対象IPアドレスとホワイトIPアドレスのネットワークアドレスを取得
+                $TARGET_ADDRESS = get_networkaddr($TARGET_CONF['target_address'], $SAFE_ADDRESS[1]);
+                $SAFE_ADDRESS = get_networkaddr($SAFE_ADDRESS[0], $SAFE_ADDRESS[1]);
+            }
+            // でなければ、そのまま比較対象とする
+            else
+            {
+                $SAFE_ADDRESS = $SAFE_ADDRESS[0];
+            }
+        }
+        // 対象IPアドレスとホワイトIPアドレスが等しいなら
+        if ($TARGET_ADDRESS === $SAFE_ADDRESS)
+        {
+            // 戻る(対象IPアドレスはホワイトリストに含まれている)
+            return TRUE;
+        }
+    }
+    // 戻る(対象IPアドレスはホワイトリストに含まれていない)
+    return FALSE;
+}
+?>
+<?php
+// ----------------------------------------------------------------------
+// Sub Routine
+// ----------------------------------------------------------------------
 function ban4ip_close($TARGET_CONF)
 {
     // UNIXソケットが開いていたら
@@ -215,6 +279,17 @@ function ban4ip_loop($TARGET_CONF)
                                 {
                                     // 対象IPアドレスから対象ホスト名を取得して設定
                                     $TARGET_CONF['target_hostname'] = gethostbyaddr($TARGET_CONF['target_address']);
+                                }
+                                
+                                // 対象IPアドレスがホワイトリストの中にあるかどうか確認
+                                if (check_safeaddr($TARGET_CONF) == TRUE)
+                                {
+                                    // ホワイトリストである旨のメッセージを設定
+                                    $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", $TARGET_CONF['logtime'])." ban4ip[".getmypid()."]: INFO [".$TARGET_CONF['target_service']."] Safe ".$TARGET_CONF['target_address']."\n";
+                                    // 親プロセスに送信
+                                    ban4ip_sendmsg($TARGET_CONF);
+                                    // 次の対象文字列検査へ
+                                    continue;
                                 }
                                 
                                 // 対象IPアドレスがIPv6なら(IPv6だったら文字列そのものが返ってくる)
