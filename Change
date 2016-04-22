@@ -31,4 +31,5 @@
 ;                           Bug fix. (Add check PID file in ban4ip_end())
 ;                           Bug fix. (socket_file check, is_file() -> is_executable())
 ; Ver.00.21    2016.04.15   Bug fix. (Add check query RESULT in ban4ipd_core.php)
+; Ver.00.22    2016.04.22   Add WhiteList (new! "safe_address")
 ;
