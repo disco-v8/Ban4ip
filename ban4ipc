@@ -379,7 +379,7 @@ BAN for IP controller (ban4ipc)
 Usage:
 
    ban4ipc start    ... ban4ipd start.
-   ban4ipc stop     ... ban4ipd start.
+   ban4ipc stop     ... ban4ipd stop.
    ban4ipc restart  ... ban4ipd stop and start.
    ban4ipc reload   ... reload config file. (not unban existing settings).
    ban4ipc list     ... output banned IPs list.
