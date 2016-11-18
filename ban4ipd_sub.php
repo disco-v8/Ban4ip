@@ -331,13 +331,13 @@ function ban4ip_loop($TARGET_CONF)
                                 $TARGET_CONF['count_db']->exec("INSERT INTO count_tbl VALUES ('".$TARGET_CONF['target_address']."','".$TARGET_CONF['target_service']."',".$TARGET_CONF['logtime'].")");
                                 
                                 // カウントデータベースで対象IPアドレスが対象時間内に何個存在するか取得
-                                $RESULT = $TARGET_CONF['count_db']->query("SELECT address FROM count_tbl WHERE address = '".$TARGET_CONF['target_address']."' AND service = '".$TARGET_CONF['target_service']."' AND registdate > (".($TARGET_CONF['logtime'] - $TARGET_CONF['findtime']).")");
+                                $RESULT = $TARGET_CONF['count_db']->query("SELECT COUNT(address) AS cnt FROM count_tbl WHERE address = '".$TARGET_CONF['target_address']."' AND service = '".$TARGET_CONF['target_service']."' AND registdate > (".($TARGET_CONF['logtime'] - $TARGET_CONF['findtime']).")");
                                 
                                 // 対象IPアドレスの検出回数を取得
                                 $RESULT_COUNT = 0;
-                                while ($DB_DATA = $RESULT->fetchArray(SQLITE3_ASSOC))
+                                if ($DB_DATA = $RESULT->fetchArray(SQLITE3_ASSOC))
                                 {
-                                    $RESULT_COUNT ++;
+                                    $RESULT_COUNT = intval($DB_DATA["cnt"]);
                                 }
                                 // もし検出回数以上になったら
                                 if ($RESULT_COUNT >= $TARGET_CONF['maxretry'])
