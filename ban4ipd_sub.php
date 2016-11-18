@@ -401,7 +401,7 @@ function ban4ip_init($TARGET_CONF)
         // 対象プロトコルが文字列指定でないか、tcpでもudpでもallでもないなら
         if (!is_string($TARGET_CONF['target_protcol']) || ($TARGET_CONF['target_protcol'] != 'tcp' && $TARGET_CONF['target_protcol'] != 'udp' && $TARGET_CONF['target_protcol'] != 'all'))
         {
-            // エラーメッセージに、BAN時間[s]の設定がない旨を設定
+            // エラーメッセージに、対象プロトコルの設定がない旨を設定
             $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] ".$TARGET_CONF['target_protcol']." is not support protcol!? (".$TARGET_CONF['conf_file'].")"."\n";
             // パラメータを戻す
             return $TARGET_CONF;
@@ -421,7 +421,7 @@ function ban4ip_init($TARGET_CONF)
         // 対象ポートが数字ではなく(＝文字列指定の)、ポート番号が引けないか、'all'でないなら
         if (!is_numeric($TARGET_CONF['target_port']) && (getservbyname($TARGET_CONF['target_port'],'tcp') == FALSE && $TARGET_CONF['target_port'] != 'all'))
         {
-            // エラーメッセージに、BAN時間[s]の設定がない旨を設定
+            // エラーメッセージに、対象ポートの設定がない旨を設定
             $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] ".$TARGET_CONF['target_protcol']." is not support port!? (".$TARGET_CONF['conf_file'].")"."\n";
              // パラメータを戻す
             return $TARGET_CONF;
@@ -439,7 +439,7 @@ function ban4ip_init($TARGET_CONF)
     // 対象ルール(--rule)が設定されていないなら
     if (!isset($TARGET_CONF['target_rule']))
     {
-        // エラーメッセージに、BAN時間[s]の設定がない旨を設定
+        // エラーメッセージに、対象ルールの設定がない旨を設定
         $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] Rule is not set!? (".$TARGET_CONF['conf_file'].")"."\n";
         // パラメータを戻す
         return $TARGET_CONF;
@@ -447,7 +447,7 @@ function ban4ip_init($TARGET_CONF)
     // 対象ルールが文字列指定だった場合、DROPでもREJECTでもLOGでもないなら
     else if (!is_string($TARGET_CONF['target_rule']) || ($TARGET_CONF['target_rule'] != 'DROP' && $TARGET_CONF['target_rule'] != 'REJECT' && $TARGET_CONF['target_rule'] != 'LOG'))
     {
-        // エラーメッセージに、BAN時間[s]の設定がない旨を設定
+        // エラーメッセージに、対象ルールの設定がない旨を設定
         $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] Rule is not support rule!? (".$TARGET_CONF['conf_file'].")"."\n";
         // パラメータを戻す
         return $TARGET_CONF;
@@ -458,7 +458,7 @@ function ban4ip_init($TARGET_CONF)
     // 対象サービス(--service)が設定されていないなら
     if (!isset($TARGET_CONF['target_service']))
     {
-        // エラーメッセージに、BAN時間[s]の設定がない旨を設定
+        // エラーメッセージに、対象サービスの設定がない旨を設定
         $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] target_service is not set!? (".$TARGET_CONF['conf_file'].")"."\n";
         // パラメータを戻す
         return $TARGET_CONF;
@@ -470,7 +470,7 @@ function ban4ip_init($TARGET_CONF)
         ($TARGET_CONF['target_protcol'] == 'all' && $TARGET_CONF['target_port'] != 'all')
         )
     {
-        // エラーメッセージに、BAN時間[s]の設定がない旨を設定
+        // エラーメッセージに、対象プロトコルと対象ポートが片方だけallの設定である旨を設定
         $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] protcol(".$TARGET_CONF['target_protcol'].") and port(".$TARGET_CONF['target_port'].") mismatch!? (".$TARGET_CONF['conf_file'].")"."\n";
         // パラメータを戻す
         return $TARGET_CONF;
