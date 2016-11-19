@@ -426,7 +426,7 @@ do // SIGHUPに対応したループ構造にしている
             else
             {
                 // 該当データがあったらUNBANする
-                while ($DB_DATA = $RESULT->fetchArray(SQLITE3_ASSOC))
+                while ($DB_DATA = $RESULT->fetch(PDO::FETCH_ASSOC))
                 {
                     // UNBANする
                     $BAN4IPD_CONF['target_address'] = $DB_DATA['address'];
