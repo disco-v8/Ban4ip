@@ -256,7 +256,7 @@ function ban4ip_banlist($BAN4IPD_CONF)
     // BANデータベース内の全データを取得
     $RESULT = $BAN4IPD_CONF['ban_db']->query("SELECT * FROM ban_tbl");
     // データがあったら表示する
-    while ($DB_DATA = $RESULT->fetchArray(SQLITE3_ASSOC))
+    while ($DB_DATA = $RESULT->fetch(PDO::FETCH_ASSOC))
     {
         printf("%-39s %-16s %-10s %-6s %s",$DB_DATA['address'],$DB_DATA['service'],$DB_DATA['port'],$DB_DATA['rule'],date("Y/m/d H:i:s",$DB_DATA['unbandate']));
         print "\n";

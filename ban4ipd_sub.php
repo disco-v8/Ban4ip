@@ -335,7 +335,7 @@ function ban4ip_loop($TARGET_CONF)
                                 
                                 // 対象IPアドレスの検出回数を取得
                                 $RESULT_COUNT = 0;
-                                while ($DB_DATA = $RESULT->fetchArray(SQLITE3_ASSOC))
+                                while ($DB_DATA = $RESULT->fetch(PDO::FETCH_ASSOC))
                                 {
                                     $RESULT_COUNT ++;
                                 }
