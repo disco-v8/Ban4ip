@@ -32,4 +32,6 @@
 ;                           Bug fix. (socket_file check, is_file() -> is_executable())
 ; Ver.00.21    2016.04.15   Bug fix. (Add check query RESULT in ban4ipd_core.php)
 ; Ver.00.22    2016.04.22   Add WhiteList (new! "safe_address")
+; Ver.00.23    2017.05.29   Add journal_mode,synchronous setting and pull request marge!
+;                           Thanks! https://github.com/rururu3 and https://www.facebook.com/kota.kanbe :-)
 ;
