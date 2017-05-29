@@ -173,38 +173,70 @@ if (!is_dir($BAN4IPD_CONF['db_dir']))
     exit -1;
 }
 
-// カウントデータベースに接続(無ければ新規に作成)
-$BAN4IPD_CONF['count_db'] = new SQLite3($BAN4IPD_CONF['db_dir'].'/count.db');
-
-// カウントデータベースに接続できなかったら
-if ($BAN4IPD_CONF['count_db'] === FALSE)
+// カウントデータベースのデータソース名(DSN)の指定がなければ、
+if (empty($BAN4IPD_CONF['pdo_dsn_count']))
 {
-    print "Cannot connect ".$BAN4IPD_CONF['db_dir'].'/count.db'."!?"."\n";
+    // カウントデータベースに接続(無ければ新規に作成)
+    $BAN4IPD_CONF['pdo_dsn_count'] = 'sqlite:' . $BAN4IPD_CONF['db_dir'].'/count.db';
+}
+// カウントデータベースに接続を試す
+try
+{
+    $BAN4IPD_CONF['count_db'] = new PDO($BAN4IPD_CONF['pdo_dsn_count']);
+}
+// 接続できなかったら(失敗した場合、 PDOException を投げてくる)
+catch(PDOException $e)
+{
+    print $BAN4IPD_CONF['pdo_dsn_count']." not Connection!?"."\n";
+    print $e->getMessage()."\n";
     // 終わり
     exit -1;
 }
 
 // テーブルがなかったら作成
 $BAN4IPD_CONF['count_db']->exec('CREATE TABLE IF NOT EXISTS count_tbl (address, service, registdate)');
+// インデックスを作成する
+$BAN4IPD_CONF['count_db']->exec('CREATE INDEX IF NOT EXISTS count_idx ON count_tbl (address)');
+
+// journal_modeをWALにする
+$BAN4IPD_CONF['count_db']->exec('PRAGMA journal_mode=WAL');
+// synchronousをNORMALにする
+$BAN4IPD_CONF['count_db']->exec('PRAGMA synchronous=NORMAL');
 
 // カウントデータベースのロックタイムアウト時間を少し長くする
-$BAN4IPD_CONF['count_db']->busyTimeout($BAN4IPD_CONF['db_timeout']);
+$BAN4IPD_CONF['count_db']->setAttribute(PDO::ATTR_TIMEOUT, $BAN4IPD_CONF['db_timeout']);
 
-// BANデータベースに接続(無ければ新規に作成)
-$BAN4IPD_CONF['ban_db'] = new SQLite3($BAN4IPD_CONF['db_dir'].'/ban.db');
-
-// BANデータベースに接続できなかったら
-if ($BAN4IPD_CONF['ban_db'] === FALSE)
+// BANデータベースのデータソース名(DSN)の指定がなければ、
+if (empty($BAN4IPD_CONF['pdo_dsn_ban']))
 {
-    print "Cannot connect ".$BAN4IPD_CONF['db_dir'].'/ban.db'."!?"."\n";
+    // BANデータベースに接続(無ければ新規に作成)
+    $BAN4IPD_CONF['pdo_dsn_ban'] = 'sqlite:' . $BAN4IPD_CONF['db_dir'].'/ban.db';
+}
+// BANデータベースに接続を試す
+try
+{
+    $BAN4IPD_CONF['ban_db'] = new PDO($BAN4IPD_CONF['pdo_dsn_ban']);
+}
+// 接続できなかったら(失敗した場合、 PDOException を投げてくる)
+catch(PDOException $e)
+{
+    print $BAN4IPD_CONF['pdo_dsn_ban']." not Connection!?"."\n";
+    print $e->getMessage()."\n";
     // 終わり
     exit -1;
 }
 
 // テーブルがなかったら作成
 $BAN4IPD_CONF['ban_db']->exec('CREATE TABLE IF NOT EXISTS ban_tbl (address, service, protcol, port, rule, unbandate)');
+// インデックスを作成する
+$BAN4IPD_CONF['ban_db']->exec('CREATE INDEX IF NOT EXISTS ban_idx ON ban_tbl (address)');
 
-// カウントデータベースのロックタイムアウト時間を少し長くする
-$BAN4IPD_CONF['ban_db']->busyTimeout($BAN4IPD_CONF['db_timeout']);
+// journal_modeをWALにする
+$BAN4IPD_CONF['ban_db']->exec('PRAGMA journal_mode=WAL');
+// synchronousをNORMALにする
+$BAN4IPD_CONF['ban_db']->exec('PRAGMA synchronous=NORMAL');
+
+// BANデータベースのロックタイムアウト時間を少し長くする
+$BAN4IPD_CONF['ban_db']->setAttribute(PDO::ATTR_TIMEOUT, $BAN4IPD_CONF['db_timeout']);
 
 ?>
