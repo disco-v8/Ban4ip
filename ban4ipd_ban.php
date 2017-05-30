@@ -162,7 +162,7 @@ function ban4ip_ban($TARGET_CONF)
             // -----------------------------
             // ban4ipチェインの設定を取得する
             $PROC_P = popen($IPTABLES." -L ban4ip -n", "r");
-            $TARGET_PATTERN = '/^'.$TARGET_CONF['target_rule'].' .* '.preg_replace('/\//', '\/', $TARGET_CONF['target_address']).'.* $/';
+            $TARGET_PATTERN = '/^'.$TARGET_CONF['target_rule'].' .* '.preg_replace('/\//', '\/', $TARGET_CONF['target_address']).'.*$/';
             // ban4ipチェインに対象IPアドレスがないなら
             if (psearch($PROC_P, $TARGET_PATTERN) == FALSE)
             {
@@ -203,7 +203,7 @@ function ban4ip_ban($TARGET_CONF)
             // -----------------------------
             // ban4ipチェインの設定を取得する
             $PROC_P = popen($IPTABLES." -L ban4ip -n", "r");
-            $TARGET_PATTERN = '/^'.$TARGET_CONF['target_rule'].' .* '.preg_replace('/\//', '\/', $TARGET_CONF['target_address']).'.* '.$TARGET_CONF['target_protcol'].' dpt:'.$TARGET_CONF['target_port'].' $/';
+            $TARGET_PATTERN = '/^'.$TARGET_CONF['target_rule'].' .* '.preg_replace('/\//', '\/', $TARGET_CONF['target_address']).'.* '.$TARGET_CONF['target_protcol'].' dpt:'.$TARGET_CONF['target_port'].'$/';
             // ban4ipチェインに対象IPアドレスがないなら
             if (psearch($PROC_P, $TARGET_PATTERN) == FALSE)
             {
