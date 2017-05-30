@@ -438,6 +438,9 @@ do // SIGHUPに対応したループ構造にしている
                     // ログに出力する
                     log_write($BAN4IPD_CONF);
                 }
+                // WAL内のデータをDBに書き出し(こうしないとban4ipc listで確認したり、別プロセスでsqlite3ですぐに確認できない…が、負荷的にはWALにしている意味がないよなぁ…一応banの場合は発行時に、unbanはここですべてが終わった時に書き出し処理をする。count_dbはしない)
+///                $BAN4IPD_CONF['count_db']->exec("PRAGMA wal_checkpoint");
+                $BAN4IPD_CONF['ban_db']->exec("PRAGMA wal_checkpoint");
             }
         }
         
