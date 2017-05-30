@@ -77,7 +77,7 @@ function psearch($PP, $PATTERN)
     while (($DATA = fgets($PP)) !== false)
     {
         // もし$DATA内に$PATTERNに該当するデータがあるなら
-        if (preg_match($PATTERN, $DATA))
+        if (preg_match($PATTERN, rtrim($DATA)))
         {
             // TRUEを返す
             return TRUE;
