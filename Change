@@ -36,4 +36,5 @@
 ;                           Thanks! https://github.com/rururu3 and https://www.facebook.com/kota.kanbe :-)
 ; Ver.00.24    2017.05.30   Change count_db's count logic & query.
 ;                           Bug fix. (The last space of iptables output is different depends on the version!)
+;                           Bug fix. (SQLite3 with WAL mode)
 ;
