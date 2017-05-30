@@ -342,6 +342,8 @@ function ban4ip_loop($TARGET_CONF)
                                     $DB_DATA = $RESULT->fetch(PDO::FETCH_ASSOC);
                                     // 対象IPアドレスの検出回数を取得
                                     $RESULT_COUNT = $DB_DATA['addr_count'];
+                                    // 結果を開放
+                                    $DB_DATA = $RESULT->closeCursor(PDO::FETCH_ASSOC);
                                 }
                                 // もし検出回数以上になったら
                                 if ($RESULT_COUNT >= $TARGET_CONF['maxretry'])
