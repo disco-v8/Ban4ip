@@ -237,7 +237,7 @@ function ban4ip_loop($TARGET_CONF)
             if ($EVENT['mask'] & IN_MOVE_SELF)
             {
                 // 対象ファイルが切り詰められた？旨のメッセージを設定
-                $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: INFO [".$TARGET_CONF['target_service']."] Stop. Target File was rotate? (".$TARGET_CONF['conf_file'].")"."\n";
+                $TARGET_CONF['log_msg'] = "INFO [".$TARGET_CONF['target_service']."] Stop. Target File was rotate? (".$TARGET_CONF['conf_file'].")"."\n";
                 // 親プロセスに送信
                 ban4ip_sendmsg($TARGET_CONF);
                 // ログデータ解析処理を抜ける
@@ -387,7 +387,7 @@ function ban4ip_init($TARGET_CONF)
     if (!isset($TARGET_CONF['bantime']))
     {
         // エラーメッセージに、BAN時間[s]の設定がない旨を設定
-        $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] bantime is not set!? (".$TARGET_CONF['conf_file'].")"."\n";
+        $TARGET_CONF['log_msg'] .= "ERROR [".$TARGET_CONF['target_service']."] bantime is not set!? (".$TARGET_CONF['conf_file'].")"."\n";
         // パラメータを戻す
         return $TARGET_CONF;
     }
@@ -395,7 +395,7 @@ function ban4ip_init($TARGET_CONF)
     else if (!is_numeric($TARGET_CONF['bantime']))
     {
         // エラーメッセージに、BAN時間[s]の設定がない旨を設定
-        $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] bantime is not integer!? (".$TARGET_CONF['conf_file'].")"."\n";
+        $TARGET_CONF['log_msg'] .= "ERROR [".$TARGET_CONF['target_service']."] bantime is not integer!? (".$TARGET_CONF['conf_file'].")"."\n";
         // パラメータを戻す
         return $TARGET_CONF;
     }
@@ -408,7 +408,7 @@ function ban4ip_init($TARGET_CONF)
         if (!is_string($TARGET_CONF['target_protcol']) || ($TARGET_CONF['target_protcol'] != 'tcp' && $TARGET_CONF['target_protcol'] != 'udp' && $TARGET_CONF['target_protcol'] != 'all'))
         {
             // エラーメッセージに、BAN時間[s]の設定がない旨を設定
-            $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] ".$TARGET_CONF['target_protcol']." is not support protcol!? (".$TARGET_CONF['conf_file'].")"."\n";
+            $TARGET_CONF['log_msg'] .= "ERROR [".$TARGET_CONF['target_service']."] ".$TARGET_CONF['target_protcol']." is not support protcol!? (".$TARGET_CONF['conf_file'].")"."\n";
             // パラメータを戻す
             return $TARGET_CONF;
         }
@@ -428,7 +428,7 @@ function ban4ip_init($TARGET_CONF)
         if (!is_numeric($TARGET_CONF['target_port']) && (getservbyname($TARGET_CONF['target_port'],'tcp') == FALSE && $TARGET_CONF['target_port'] != 'all'))
         {
             // エラーメッセージに、BAN時間[s]の設定がない旨を設定
-            $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] ".$TARGET_CONF['target_protcol']." is not support port!? (".$TARGET_CONF['conf_file'].")"."\n";
+            $TARGET_CONF['log_msg'] .= "ERROR [".$TARGET_CONF['target_service']."] ".$TARGET_CONF['target_protcol']." is not support port!? (".$TARGET_CONF['conf_file'].")"."\n";
              // パラメータを戻す
             return $TARGET_CONF;
        }
@@ -446,7 +446,7 @@ function ban4ip_init($TARGET_CONF)
     if (!isset($TARGET_CONF['target_rule']))
     {
         // エラーメッセージに、BAN時間[s]の設定がない旨を設定
-        $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] Rule is not set!? (".$TARGET_CONF['conf_file'].")"."\n";
+        $TARGET_CONF['log_msg'] .= "ERROR [".$TARGET_CONF['target_service']."] Rule is not set!? (".$TARGET_CONF['conf_file'].")"."\n";
         // パラメータを戻す
         return $TARGET_CONF;
     }
@@ -454,7 +454,7 @@ function ban4ip_init($TARGET_CONF)
     else if (!is_string($TARGET_CONF['target_rule']) || ($TARGET_CONF['target_rule'] != 'DROP' && $TARGET_CONF['target_rule'] != 'REJECT' && $TARGET_CONF['target_rule'] != 'LOG'))
     {
         // エラーメッセージに、BAN時間[s]の設定がない旨を設定
-        $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] Rule is not support rule!? (".$TARGET_CONF['conf_file'].")"."\n";
+        $TARGET_CONF['log_msg'] .= "ERROR [".$TARGET_CONF['target_service']."] Rule is not support rule!? (".$TARGET_CONF['conf_file'].")"."\n";
         // パラメータを戻す
         return $TARGET_CONF;
     }
@@ -465,7 +465,7 @@ function ban4ip_init($TARGET_CONF)
     if (!isset($TARGET_CONF['target_service']))
     {
         // エラーメッセージに、BAN時間[s]の設定がない旨を設定
-        $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] target_service is not set!? (".$TARGET_CONF['conf_file'].")"."\n";
+        $TARGET_CONF['log_msg'] .= "ERROR [".$TARGET_CONF['target_service']."] target_service is not set!? (".$TARGET_CONF['conf_file'].")"."\n";
         // パラメータを戻す
         return $TARGET_CONF;
     }
@@ -477,7 +477,7 @@ function ban4ip_init($TARGET_CONF)
         )
     {
         // エラーメッセージに、BAN時間[s]の設定がない旨を設定
-        $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] protcol(".$TARGET_CONF['target_protcol'].") and port(".$TARGET_CONF['target_port'].") mismatch!? (".$TARGET_CONF['conf_file'].")"."\n";
+        $TARGET_CONF['log_msg'] .= "ERROR [".$TARGET_CONF['target_service']."] protcol(".$TARGET_CONF['target_protcol'].") and port(".$TARGET_CONF['target_port'].") mismatch!? (".$TARGET_CONF['conf_file'].")"."\n";
         // パラメータを戻す
         return $TARGET_CONF;
     }
@@ -490,7 +490,7 @@ function ban4ip_init($TARGET_CONF)
     if ($TARGET_CONF['socket'] == FALSE )
     {
         // エラーメッセージに、UNIXソケットを開けない旨を設定
-        $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] Cannot create socket!? (".$TARGET_CONF['conf_file'].")"."\n";
+        $TARGET_CONF['log_msg'] .= "ERROR [".$TARGET_CONF['target_service']."] Cannot create socket!? (".$TARGET_CONF['conf_file'].")"."\n";
         // パラメータを戻す
         return $TARGET_CONF;
     }
@@ -498,7 +498,7 @@ function ban4ip_init($TARGET_CONF)
     if (socket_set_block($TARGET_CONF['socket']) == FALSE)
     {
         // エラーメッセージに、UNIXソケットをブロックモードモードに変更できない旨を設定
-        $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] Cannot set block socket!? (".$TARGET_CONF['conf_file'].")"."\n";
+        $TARGET_CONF['log_msg'] .= "ERROR [".$TARGET_CONF['target_service']."] Cannot set block socket!? (".$TARGET_CONF['conf_file'].")"."\n";
         // パラメータを戻す
         return $TARGET_CONF;
     }
@@ -515,7 +515,9 @@ function ban4ip_init($TARGET_CONF)
     if (!is_file($TARGET_CONF['target_log']))
     {
         // エラーメッセージに、対象ログが開けない旨を設定
-        $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] Cannot find target_log!? (".$TARGET_CONF['conf_file'].")"."\n";
+        $TARGET_CONF['log_msg'] .= "ERROR [".$TARGET_CONF['target_service']."] Cannot find target_log!? (".$TARGET_CONF['conf_file'].")"."\n";
+        // 100msくらいのウェイトを置く
+        usleep(100000);
         // パラメータを戻す
         return $TARGET_CONF;
     }
@@ -523,7 +525,7 @@ function ban4ip_init($TARGET_CONF)
     if (!is_readable($TARGET_CONF['target_log']))
     {
         // エラーメッセージに、対象ログが読めない旨を設定
-        $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] Cannot read target_log!? (".$TARGET_CONF['conf_file'].")"."\n";
+        $TARGET_CONF['log_msg'] .= "ERROR [".$TARGET_CONF['target_service']."] Cannot read target_log!? (".$TARGET_CONF['conf_file'].")"."\n";
         // 100msくらいのウェイトを置く
         usleep(100000);
         // パラメータを戻す
@@ -535,7 +537,7 @@ function ban4ip_init($TARGET_CONF)
     if ($TARGET_CONF['target_fp'] == FALSE)
     {
         // エラーメッセージに、対象ログが開けない旨を設定
-        $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] Cannot open target_log!? (".$TARGET_CONF['conf_file'].")"."\n";
+        $TARGET_CONF['log_msg'] .= "ERROR [".$TARGET_CONF['target_service']."] Cannot open target_log!? (".$TARGET_CONF['conf_file'].")"."\n";
         // パラメータを戻す
         return $TARGET_CONF;
     }
@@ -546,7 +548,7 @@ function ban4ip_init($TARGET_CONF)
     if ($RESULT == -1)
     {
         // エラーメッセージに、対象ログの最後にシークできない旨を設定
-        $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] Cannot seek target_log!? (".$TARGET_CONF['conf_file'].")"."\n";
+        $TARGET_CONF['log_msg'] .= "ERROR [".$TARGET_CONF['target_service']."] Cannot seek target_log!? (".$TARGET_CONF['conf_file'].")"."\n";
         // パラメータを戻す
         return $TARGET_CONF;
     }
@@ -557,7 +559,7 @@ function ban4ip_init($TARGET_CONF)
     if ($TARGET_CONF['target_inotify'] === false)
     {
         // エラーメッセージに、対象ログの最後にシークできない旨を設定
-        $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] Failed to obtain an inotify instance!? (".$TARGET_CONF['conf_file'].")"."\n";
+        $TARGET_CONF['log_msg'] .= "ERROR [".$TARGET_CONF['target_service']."] Failed to obtain an inotify instance!? (".$TARGET_CONF['conf_file'].")"."\n";
         // パラメータを戻す
         return $TARGET_CONF;
     }
@@ -570,7 +572,7 @@ function ban4ip_init($TARGET_CONF)
         if ($TARGET_CONF['target_watch'] === false)
         {
             // エラーメッセージに、イベントを起こすように設定できない旨を設定
-            $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR [".$TARGET_CONF['target_service']."] Cannot watch target_log!? (".$TARGET_CONF['conf_file'].")"."\n";
+            $TARGET_CONF['log_msg'] .= "ERROR [".$TARGET_CONF['target_service']."] Cannot watch target_log!? (".$TARGET_CONF['conf_file'].")"."\n";
             // パラメータを戻す
             return $TARGET_CONF;
         }
@@ -592,8 +594,20 @@ function ban4ip_start($TARGET_CONF)
         // 初期化に失敗したら
         if (strlen($TARGET_CONF['log_msg']))
         {
+            // 設定されている宛先にメール送信
+            foreach($TARGET_CONF['mail_to'] as $MAIL_TO)
+            {
+///                $RESULT = mb_send_mail(
+                $RESULT = ban4ip_mail_send(
+                $TARGET_CONF,
+                $MAIL_TO,
+                $TARGET_CONF['mail_title']." ".$TARGET_CONF['log_msg'],
+                date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ".$TARGET_CONF['log_msg'],
+                'From: '.$TARGET_CONF['mail_from']."\n".
+                $TARGET_CONF['mail_priority']."\n");
+            }
             // メッセージを表示
-            print $TARGET_CONF['log_msg'];
+            print date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ".$TARGET_CONF['log_msg'];
             // 親プロセスに送信
             ban4ip_sendmsg($TARGET_CONF);
             // loop_mode!=1なら、ログがない場合にはここで終わり
@@ -607,7 +621,7 @@ function ban4ip_start($TARGET_CONF)
         else
         {
             // 子プロセスがスタートした旨を表示
-            $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: INFO [".$TARGET_CONF['target_service']."] Co-Process Start. (".$TARGET_CONF['conf_file'].")"."\n";
+            $TARGET_CONF['log_msg'] = "INFO [".$TARGET_CONF['target_service']."] Co-Process Start. (".$TARGET_CONF['conf_file'].")"."\n";
             // 親プロセスに送信
             ban4ip_sendmsg($TARGET_CONF);
             
