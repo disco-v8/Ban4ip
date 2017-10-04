@@ -173,7 +173,9 @@ if (!is_dir($BAN4IPD_CONF['db_dir']))
     exit -1;
 }
 
+// ----------------
 // カウントデータベースのデータソース名(DSN)の指定がなければ、
+// ----------------
 if (empty($BAN4IPD_CONF['pdo_dsn_count']))
 {
     // カウントデータベースに接続(無ければ新規に作成)
@@ -206,7 +208,9 @@ $BAN4IPD_CONF['count_db']->exec('PRAGMA synchronous=NORMAL');
 // カウントデータベースのロックタイムアウト時間を少し長くする
 $BAN4IPD_CONF['count_db']->setAttribute(PDO::ATTR_TIMEOUT, $BAN4IPD_CONF['db_timeout']);
 
+// ----------------
 // BANデータベースのデータソース名(DSN)の指定がなければ、
+// ----------------
 if (empty($BAN4IPD_CONF['pdo_dsn_ban']))
 {
     // BANデータベースに接続(無ければ新規に作成)
@@ -238,5 +242,40 @@ $BAN4IPD_CONF['ban_db']->exec('PRAGMA synchronous=NORMAL');
 
 // BANデータベースのロックタイムアウト時間を少し長くする
 $BAN4IPD_CONF['ban_db']->setAttribute(PDO::ATTR_TIMEOUT, $BAN4IPD_CONF['db_timeout']);
+
+// ----------------
+// メール送信レートデータベースのデータソース名(DSN)の指定がなければ、
+// ----------------
+if (empty($BAN4IPD_CONF['pdo_dsn_mailrate']))
+{
+    // メール送信レートテーブルデータベースに接続(無ければ新規に作成)
+    $BAN4IPD_CONF['pdo_dsn_mailrate'] = 'sqlite:' . $BAN4IPD_CONF['db_dir'].'/mailrate.db';
+}
+// メール送信レートテーブルデータベースに接続を試す
+try
+{
+    $BAN4IPD_CONF['mailrate_db'] = new PDO($BAN4IPD_CONF['pdo_dsn_mailrate']);
+}
+// 接続できなかったら(失敗した場合、 PDOException を投げてくる)
+catch(PDOException $e)
+{
+    print $BAN4IPD_CONF['pdo_dsn_mailrate']." not Connection!?"."\n";
+    print $e->getMessage()."\n";
+    // 終わり
+    exit -1;
+}
+
+// テーブルがなかったら作成
+$BAN4IPD_CONF['mailrate_db']->exec('CREATE TABLE IF NOT EXISTS mailrate_tbl (to_address, title, registdate, UNIQUE (to_address, title) )');
+// インデックスを作成する
+$BAN4IPD_CONF['mailrate_db']->exec('CREATE INDEX IF NOT EXISTS mailrate_idx ON mailrate_tbl (to_address, title)');
+
+// journal_modeをWALにする
+$BAN4IPD_CONF['mailrate_db']->exec('PRAGMA journal_mode=WAL');
+// synchronousをNORMALにする
+$BAN4IPD_CONF['mailrate_db']->exec('PRAGMA synchronous=NORMAL');
+
+// メール送信レートテーブルデータベースのロックタイムアウト時間を少し長くする
+$BAN4IPD_CONF['mailrate_db']->setAttribute(PDO::ATTR_TIMEOUT, $BAN4IPD_CONF['db_timeout']);
 
 ?>
