@@ -37,4 +37,5 @@
 ; Ver.00.24    2017.05.30   Change count_db's count logic & query.
 ;                           Bug fix. (The last space of iptables output is different depends on the version!)
 ;                           Bug fix. (SQLite3 with WAL mode)
+; Ver.00.25    2017.09.30   Add Mail send rate (new! "mailratetime")
 ;
