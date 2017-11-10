@@ -135,10 +135,11 @@ function check_safeaddr($TARGET_CONF)
         return FALSE;
     }
     
-    $TARGET_ADDRESS = $TARGET_CONF['target_address'];
     // 対象IPアドレスがホワイトリストの中にあるかどうか確認
     foreach ($TARGET_CONF['safe_address'] as $SAFE_ADDRESS)
     {
+        // 対象アドレスを設定
+        $TARGET_ADDRESS = $TARGET_CONF['target_address'];
         // ホワイトIPアドレスを/で分割して配列に設定
         $SAFE_ADDRESS = explode("/", $SAFE_ADDRESS);
         // 対象IPアドレスもホワイトIPアドレスもIPv6なら(IPv6だったら文字列そのものが返ってくる)
