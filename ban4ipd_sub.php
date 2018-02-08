@@ -275,6 +275,13 @@ function ban4ip_loop($TARGET_CONF)
                                 $TARGET_CONF['logtime'] = local_time();
                                 // 対象文字列を対象IPアドレスに設定
                                 $TARGET_CONF['target_address'] = $TARGET_MATCH[1];
+                                // IPアドレスがIPv4inIPv6フォーマットなら
+                                if (preg_match("/^::ffff:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/", $TARGET_CONF['target_address']))
+                                {
+///                                    print "IPアドレスがIPv4inIPv6フォーマットです\n";
+                                    // IPv4アドレスを設定
+                                    $TARGET_CONF['target_address'] = preg_replace("/^::ffff:/", '', $TARGET_CONF['target_address']);
+                                }
                                 // ホスト名の逆引きがONになっていたら
                                 if ($TARGET_CONF['hostname_lookup'] == 1)
                                 {
