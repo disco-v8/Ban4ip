@@ -47,8 +47,19 @@ function ban4ip_exec($BAN4IPD_CONF, $TARGET_CMD)
         // コマンド実行処理を抜ける
         return $BAN4IPD_CONF;
     }
-    // 指定されたコマンドを実行
-    $RESULT = system($BAN4IPD_CONF[$TARGET_CMD].' --source '.$TARGET_CONF['target_address'].' --proto '.$TARGET_CONF['target_protcol'].' --dport '.$TARGET_CONF['target_port'].' --jump '.$TARGET_CONF['target_rule']);
+    
+    // 対象文字列がキーワード指定なら
+    if (isset($BAN4IPD_CONF['target_type']) && strpos($BAN4IPD_CONF['target_type'], "KEY") !== FALSE)
+    {
+        // 指定されたコマンドを実行
+        $RESULT = system($BAN4IPD_CONF[$TARGET_CMD].' --keyword '.$BAN4IPD_CONF['target_keyword'].' --jump '.$BAN4IPD_CONF['target_rule'].' --service '.$BAN4IPD_CONF['target_service']);
+    }
+    // 対象がIPアドレスなら
+    else
+    {
+        // 指定されたコマンドを実行
+        $RESULT = system($BAN4IPD_CONF[$TARGET_CMD].' --source '.$BAN4IPD_CONF['target_address'].' --proto '.$BAN4IPD_CONF['target_protcol'].' --dport '.$BAN4IPD_CONF['target_port'].' --jump '.$BAN4IPD_CONF['target_rule'].' --service '.$BAN4IPD_CONF['target_service']);
+    }
     
     // 指定されたコマンドを実行した旨のメッセージを設定
     $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", $BAN4IPD_CONF['logtime'])." ban4ip[".getmypid()."]: NOTICE [".$BAN4IPD_CONF['target_service']."] EXEC ".$TARGET_CMD." \"".$BAN4IPD_CONF[$TARGET_CMD]."\"";
