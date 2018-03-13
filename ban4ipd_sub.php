@@ -191,6 +191,36 @@ function check_safeaddr($TARGET_CONF)
 // ----------------------------------------------------------------------
 // Sub Routine
 // ----------------------------------------------------------------------
+function check_safekeyword($TARGET_CONF)
+{
+    // ホワイトリスト設定がないなら
+    if (!isset($TARGET_CONF['safe_keyword']) || !is_array($TARGET_CONF['safe_keyword']))
+    {
+        // 戻る(対象キーワードはホワイトリストに含まれていない)
+        return FALSE;
+    }
+    
+    // 対象キーワードがホワイトリストの中にあるかどうか確認
+    foreach ($TARGET_CONF['safe_keyword'] as $SAFE_ADDRESS)
+    {
+        // 対象キーワードを設定
+        $TARGET_ADDRESS = $TARGET_CONF['target_keyword'];
+        
+        // 対象キーワードとホワイトキーワードが等しいなら
+        if ($TARGET_ADDRESS === $SAFE_ADDRESS)
+        {
+            // 戻る(対象キーワードはホワイトリストに含まれている)
+            return TRUE;
+        }
+    }
+    // 戻る(対象キーワードはホワイトリストに含まれていない)
+    return FALSE;
+}
+?>
+<?php
+// ----------------------------------------------------------------------
+// Sub Routine
+// ----------------------------------------------------------------------
 function ban4ip_close($TARGET_CONF)
 {
     // UNIXソケットが開いていたら
@@ -268,106 +298,171 @@ function ban4ip_loop($TARGET_CONF)
                         // 対象文字列があるなら
                         if (preg_match($TARGET_PATTERN, $LOGSTR, $TARGET_MATCH) == 1)
                         {
-                            // 対象文字列がIPアドレスなら
-                            if (filter_var($TARGET_MATCH[1], FILTER_VALIDATE_IP) !== FALSE)
+                            // 対象文字列がキーワード指定なら
+                            if (isset($TARGET_CONF['target_type']) && strpos($TARGET_CONF['target_type'], "KEY") !== FALSE)
                             {
-                                // 現在日時を設定
-                                $TARGET_CONF['logtime'] = local_time();
-                                // 対象文字列を対象IPアドレスに設定
-                                $TARGET_CONF['target_address'] = $TARGET_MATCH[1];
-                                // IPアドレスがIPv4inIPv6フォーマットなら
-                                if (preg_match("/^::ffff:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/", $TARGET_CONF['target_address']))
-                                {
-///                                    print "IPアドレスがIPv4inIPv6フォーマットです\n";
-                                    // IPv4アドレスを設定
-                                    $TARGET_CONF['target_address'] = preg_replace("/^::ffff:/", '', $TARGET_CONF['target_address']);
-                                }
-                                // ホスト名の逆引きがONになっていたら
-                                if ($TARGET_CONF['hostname_lookup'] == 1)
-                                {
-                                    // 対象IPアドレスから対象ホスト名を取得して設定
-                                    $TARGET_CONF['target_hostname'] = gethostbyaddr($TARGET_CONF['target_address']);
-                                }
-                                
-                                // 対象IPアドレスがホワイトリストの中にあるかどうか確認
-                                if (check_safeaddr($TARGET_CONF) == TRUE)
-                                {
-                                    // ホワイトリストである旨のメッセージを設定
-                                    $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", $TARGET_CONF['logtime'])." ban4ip[".getmypid()."]: INFO [".$TARGET_CONF['target_service']."] Safe ".$TARGET_CONF['target_address']."\n";
-                                    // 親プロセスに送信
-                                    ban4ip_sendmsg($TARGET_CONF);
-                                    // 次の対象文字列検査へ
-                                    continue;
-                                }
-                                
-                                // 対象IPアドレスがIPv6なら(IPv6だったら文字列そのものが返ってくる)
-                                if (filter_var($TARGET_CONF['target_address'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== FALSE)
-                                {
-                                    // IPv6マスク値が設定されていて、/128以外(0～127)なら
-                                    if (isset($TARGET_CONF['ipv6_netmask']) && ($TARGET_CONF['ipv6_netmask'] >= 0 && $TARGET_CONF['ipv6_netmask'] < 128))
+                                    // 現在日時を設定
+                                    $TARGET_CONF['logtime'] = local_time();
+                                    // 対象文字列を対象IPアドレスに設定
+                                    $TARGET_CONF['target_keyword'] = $TARGET_MATCH[1];
+                                    
+                                    // 対象がキーワードなので、IPアドレスがらみの処理とは別に作る
+                                    // 文字列でSQLインジェクションの可能性があるので、INSERTとかSELECTするときにフィルターにかける
+                                    // あとは…同じかな？
+                                    
+                                    
+                                    // 対象キーワードがホワイトリストの中にあるかどうか確認
+                                    if (check_safekeyword($TARGET_CONF) == TRUE)
                                     {
-                                        // 対象IPアドレスにマスク値を追加したアドレス表記を、対象ネットワークアドレスとする
-                                        $TARGET_ADDRESS = get_networkaddr($TARGET_CONF['target_address'], $TARGET_CONF['ipv6_netmask']);
-                                        // 対象ネットワークアドレスが正常に取得できたなら
-                                        if ($TARGET_ADDRESS != FALSE)
+                                        // ホワイトリストである旨のメッセージを設定
+                                        $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", $TARGET_CONF['logtime'])." ban4ip[".getmypid()."]: INFO [".$TARGET_CONF['target_service']."] Safe ".$TARGET_CONF['target_keyword']."\n";
+                                        // 親プロセスに送信
+                                        ban4ip_sendmsg($TARGET_CONF);
+                                        // 次の対象文字列検査へ
+                                        continue;
+                                    }
+                                    
+                                    // カウントデータベースから該当サービスの現在時刻 - 対象時間より昔のカウントデータを削除
+                                    $TARGET_CONF['count_db']->exec("DELETE FROM count_tbl WHERE service = '".$TARGET_CONF['target_service']."' AND registdate < (".(local_time() - $TARGET_CONF['findtime']).")");
+                                    // カウントデータベースにカウント対象キーワードを登録(IPアドレスじゃないのでクエリをエスケープする)
+///                                    $TARGET_CONF['count_db']->exec("INSERT INTO count_tbl VALUES ('".sqlite_escape_string($TARGET_CONF['target_keyword'])."','".$TARGET_CONF['target_service']."',".$TARGET_CONF['logtime'].")");
+                                    $TARGET_CONF['count_db']->exec("INSERT INTO count_tbl VALUES ('".$TARGET_CONF['target_keyword']."','".$TARGET_CONF['target_service']."',".$TARGET_CONF['logtime'].")");
+                                    
+                                    // カウントデータベースで対象キーワードが対象時間内に何個存在するか取得
+                                    $RESULT = $TARGET_CONF['count_db']->query("SELECT COUNT(address) AS addr_count FROM count_tbl WHERE address = '".$TARGET_CONF['target_keyword']."' AND service = '".$TARGET_CONF['target_service']."' AND registdate > (".($TARGET_CONF['logtime'] - $TARGET_CONF['findtime']).")");
+                                    
+                                    // 対象キーワードの検出回数を初期化
+                                    $RESULT_COUNT = 0;
+                                    // 結果が取得できているなら
+                                    if ($RESULT)
+                                    {
+                                        // 結果を取得
+                                        $DB_DATA = $RESULT->fetch(PDO::FETCH_ASSOC);
+                                        // 対象キーワードの検出回数を取得
+                                        $RESULT_COUNT = $DB_DATA['addr_count'];
+                                        // 結果を開放
+                                        $DB_DATA = $RESULT->closeCursor();
+                                    }
+                                    // もし検出回数以上になったら
+                                    if ($RESULT_COUNT >= $TARGET_CONF['maxretry'])
+                                    {
+                                        // BANする
+                                        $TARGET_CONF = ban4ip_ban($TARGET_CONF);
+                                        // 親プロセスにログメッセージを送信
+                                        ban4ip_sendmsg($TARGET_CONF);
+                                    }
+                                    // 検出回数未満なら
+                                    else
+                                    {
+                                        // 対象キーワードのカウント数のメッセージを設定
+                                        $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", $TARGET_CONF['logtime'])." ban4ip[".getmypid()."]: INFO [".$TARGET_CONF['target_service']."] Found ".$TARGET_CONF['target_keyword']." (".$RESULT_COUNT."/".$TARGET_CONF['maxretry']." counts)"."\n";
+                                        // 親プロセスに送信
+                                        ban4ip_sendmsg($TARGET_CONF);
+                                    }
+                            }
+                            else
+                            {
+                                // 対象文字列がIPアドレスなら
+                                if (filter_var($TARGET_MATCH[1], FILTER_VALIDATE_IP) !== FALSE)
+                                {
+                                    // 現在日時を設定
+                                    $TARGET_CONF['logtime'] = local_time();
+                                    // 対象文字列を対象IPアドレスに設定
+                                    $TARGET_CONF['target_address'] = $TARGET_MATCH[1];
+                                    // IPアドレスがIPv4inIPv6フォーマットなら
+                                    if (preg_match("/^::ffff:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/", $TARGET_CONF['target_address']))
+                                    {
+///                                        print "IPアドレスがIPv4inIPv6フォーマットです\n";
+                                        // IPv4アドレスを設定
+                                        $TARGET_CONF['target_address'] = preg_replace("/^::ffff:/", '', $TARGET_CONF['target_address']);
+                                    }
+                                    // ホスト名の逆引きがONになっていたら
+                                    if ($TARGET_CONF['hostname_lookup'] == 1)
+                                    {
+                                        // 対象IPアドレスから対象ホスト名を取得して設定
+                                        $TARGET_CONF['target_hostname'] = gethostbyaddr($TARGET_CONF['target_address']);
+                                    }
+                                    
+                                    // 対象IPアドレスがホワイトリストの中にあるかどうか確認
+                                    if (check_safeaddr($TARGET_CONF) == TRUE)
+                                    {
+                                        // ホワイトリストである旨のメッセージを設定
+                                        $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", $TARGET_CONF['logtime'])." ban4ip[".getmypid()."]: INFO [".$TARGET_CONF['target_service']."] Safe ".$TARGET_CONF['target_address']."\n";
+                                        // 親プロセスに送信
+                                        ban4ip_sendmsg($TARGET_CONF);
+                                        // 次の対象文字列検査へ
+                                        continue;
+                                    }
+                                    
+                                    // 対象IPアドレスがIPv6なら(IPv6だったら文字列そのものが返ってくる)
+                                    if (filter_var($TARGET_CONF['target_address'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== FALSE)
+                                    {
+                                        // IPv6マスク値が設定されていて、/128以外(0～127)なら
+                                        if (isset($TARGET_CONF['ipv6_netmask']) && ($TARGET_CONF['ipv6_netmask'] >= 0 && $TARGET_CONF['ipv6_netmask'] < 128))
                                         {
-                                            // 対象ネットワークアドレスを対象IPアドレスとして設定
-                                            $TARGET_CONF['target_address'] = $TARGET_ADDRESS;
+                                            // 対象IPアドレスにマスク値を追加したアドレス表記を、対象ネットワークアドレスとする
+                                            $TARGET_ADDRESS = get_networkaddr($TARGET_CONF['target_address'], $TARGET_CONF['ipv6_netmask']);
+                                            // 対象ネットワークアドレスが正常に取得できたなら
+                                            if ($TARGET_ADDRESS != FALSE)
+                                            {
+                                                // 対象ネットワークアドレスを対象IPアドレスとして設定
+                                                $TARGET_CONF['target_address'] = $TARGET_ADDRESS;
+                                            }
                                         }
                                     }
-                                }
-                                // 対象IPアドレスがIPv4なら(IPv4だったら文字列そのものが返ってくる)
-                                else if (filter_var($TARGET_CONF['target_address'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== FALSE)
-                                {
-                                    // IPv4マスク値が設定されていて、/32以外(0～31)なら
-                                    if (isset($TARGET_CONF['ipv4_netmask']) && ($TARGET_CONF['ipv4_netmask'] >= 0 && $TARGET_CONF['ipv4_netmask'] < 32))
+                                    // 対象IPアドレスがIPv4なら(IPv4だったら文字列そのものが返ってくる)
+                                    else if (filter_var($TARGET_CONF['target_address'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== FALSE)
                                     {
-                                        // 対象IPアドレスにマスク値を追加したアドレス表記を、対象ネットワークアドレスとする
-                                        $TARGET_ADDRESS = get_networkaddr($TARGET_CONF['target_address'], $TARGET_CONF['ipv4_netmask']);
-                                        // 対象ネットワークアドレスが正常に取得できたなら
-                                        if ($TARGET_ADDRESS != FALSE)
+                                        // IPv4マスク値が設定されていて、/32以外(0～31)なら
+                                        if (isset($TARGET_CONF['ipv4_netmask']) && ($TARGET_CONF['ipv4_netmask'] >= 0 && $TARGET_CONF['ipv4_netmask'] < 32))
                                         {
-                                            // 対象ネットワークアドレスを対象IPアドレスとして設定
-                                            $TARGET_CONF['target_address'] = $TARGET_ADDRESS;
+                                            // 対象IPアドレスにマスク値を追加したアドレス表記を、対象ネットワークアドレスとする
+                                            $TARGET_ADDRESS = get_networkaddr($TARGET_CONF['target_address'], $TARGET_CONF['ipv4_netmask']);
+                                            // 対象ネットワークアドレスが正常に取得できたなら
+                                            if ($TARGET_ADDRESS != FALSE)
+                                            {
+                                                // 対象ネットワークアドレスを対象IPアドレスとして設定
+                                                $TARGET_CONF['target_address'] = $TARGET_ADDRESS;
+                                            }
                                         }
                                     }
-                                }
-                                
-                                // カウントデータベースから該当サービスの現在時刻 - 対象時間より昔のカウントデータを削除
-                                $TARGET_CONF['count_db']->exec("DELETE FROM count_tbl WHERE service = '".$TARGET_CONF['target_service']."' AND registdate < (".(local_time() - $TARGET_CONF['findtime']).")");
-                                // カウントデータベースにカウント対象IPアドレスを登録
-                                $TARGET_CONF['count_db']->exec("INSERT INTO count_tbl VALUES ('".$TARGET_CONF['target_address']."','".$TARGET_CONF['target_service']."',".$TARGET_CONF['logtime'].")");
-                                
-                                // カウントデータベースで対象IPアドレスが対象時間内に何個存在するか取得
-                                $RESULT = $TARGET_CONF['count_db']->query("SELECT COUNT(address) AS addr_count FROM count_tbl WHERE address = '".$TARGET_CONF['target_address']."' AND service = '".$TARGET_CONF['target_service']."' AND registdate > (".($TARGET_CONF['logtime'] - $TARGET_CONF['findtime']).")");
-                                
-                                // 対象IPアドレスの検出回数を初期化
-                                $RESULT_COUNT = 0;
-                                // 結果が取得できているなら
-                                if ($RESULT)
-                                {
-                                    // 結果を取得
-                                    $DB_DATA = $RESULT->fetch(PDO::FETCH_ASSOC);
-                                    // 対象IPアドレスの検出回数を取得
-                                    $RESULT_COUNT = $DB_DATA['addr_count'];
-                                    // 結果を開放
-                                    $DB_DATA = $RESULT->closeCursor();
-                                }
-                                // もし検出回数以上になったら
-                                if ($RESULT_COUNT >= $TARGET_CONF['maxretry'])
-                                {
-                                    // BANする
-                                    $TARGET_CONF = ban4ip_ban($TARGET_CONF);
-                                    // 親プロセスにログメッセージを送信
-                                    ban4ip_sendmsg($TARGET_CONF);
-                                }
-                                // 検出回数未満なら
-                                else
-                                {
-                                    // 対象IPアドレスのカウント数のメッセージを設定
-                                    $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", $TARGET_CONF['logtime'])." ban4ip[".getmypid()."]: INFO [".$TARGET_CONF['target_service']."] Found ".$TARGET_CONF['target_address']." (".$RESULT_COUNT."/".$TARGET_CONF['maxretry']." counts)"."\n";
-                                    // 親プロセスに送信
-                                    ban4ip_sendmsg($TARGET_CONF);
+                                    
+                                    // カウントデータベースから該当サービスの現在時刻 - 対象時間より昔のカウントデータを削除
+                                    $TARGET_CONF['count_db']->exec("DELETE FROM count_tbl WHERE service = '".$TARGET_CONF['target_service']."' AND registdate < (".(local_time() - $TARGET_CONF['findtime']).")");
+                                    // カウントデータベースにカウント対象IPアドレスを登録
+                                    $TARGET_CONF['count_db']->exec("INSERT INTO count_tbl VALUES ('".$TARGET_CONF['target_address']."','".$TARGET_CONF['target_service']."',".$TARGET_CONF['logtime'].")");
+                                    
+                                    // カウントデータベースで対象IPアドレスが対象時間内に何個存在するか取得
+                                    $RESULT = $TARGET_CONF['count_db']->query("SELECT COUNT(address) AS addr_count FROM count_tbl WHERE address = '".$TARGET_CONF['target_address']."' AND service = '".$TARGET_CONF['target_service']."' AND registdate > (".($TARGET_CONF['logtime'] - $TARGET_CONF['findtime']).")");
+                                    
+                                    // 対象IPアドレスの検出回数を初期化
+                                    $RESULT_COUNT = 0;
+                                    // 結果が取得できているなら
+                                    if ($RESULT)
+                                    {
+                                        // 結果を取得
+                                        $DB_DATA = $RESULT->fetch(PDO::FETCH_ASSOC);
+                                        // 対象IPアドレスの検出回数を取得
+                                        $RESULT_COUNT = $DB_DATA['addr_count'];
+                                        // 結果を開放
+                                        $DB_DATA = $RESULT->closeCursor();
+                                    }
+                                    // もし検出回数以上になったら
+                                    if ($RESULT_COUNT >= $TARGET_CONF['maxretry'])
+                                    {
+                                        // BANする
+                                        $TARGET_CONF = ban4ip_ban($TARGET_CONF);
+                                        // 親プロセスにログメッセージを送信
+                                        ban4ip_sendmsg($TARGET_CONF);
+                                    }
+                                    // 検出回数未満なら
+                                    else
+                                    {
+                                        // 対象IPアドレスのカウント数のメッセージを設定
+                                        $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", $TARGET_CONF['logtime'])." ban4ip[".getmypid()."]: INFO [".$TARGET_CONF['target_service']."] Found ".$TARGET_CONF['target_address']." (".$RESULT_COUNT."/".$TARGET_CONF['maxretry']." counts)"."\n";
+                                        // 親プロセスに送信
+                                        ban4ip_sendmsg($TARGET_CONF);
+                                    }
                                 }
                             }
                         }
