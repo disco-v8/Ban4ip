@@ -144,8 +144,8 @@ function ban4ip_ban($TARGET_CONF)
     {
         $IPTABLES = $TARGET_CONF['iptables'];
     }
-    // 対象IPアドレスがIPv4でもIPv6でもないなら
-    else
+    // 対象IPアドレスがIPv4でもIPv6でも、キーワード指定でもないなら
+    else if (!isset($TARGET_CONF['target_type']) || strpos($TARGET_CONF['target_type'], "KEY") === FALSE)
     {
         // 対象IPアドレスはBANの対象だけど、アドレスがおかしい旨のメッセージを設定
         $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", $TARGET_CONF['logtime'])." ban4ip[".getmypid()."]: NOTICE [".$TARGET_CONF['target_service']."] Ban ".$TARGET_CONF['target_address']." (over ".$TARGET_CONF['maxretry']." counts) ";
@@ -158,97 +158,96 @@ function ban4ip_ban($TARGET_CONF)
     // 対象サービスについてBANのルール設定があるなら
     if (isset($TARGET_CONF['target_rule']))
     {
-        // 対象サービスについてBANのプロトコルとポートがともに'all'なら
-        if ($TARGET_CONF['target_protcol'] == 'all' && $TARGET_CONF['target_port'] == 'all')
+        // BANする前のコマンド(exec_befor_ban)が設定されていたら実行(iptablesで設定する市内にかかわらず実行するように変更)
+        $TARGET_CONF = ban4ip_exec($TARGET_CONF, 'exec_befor_ban');
+        
+        // 対象文字列がキーワード指定ではないなら
+        if (!isset($TARGET_CONF['target_type']) || strpos($TARGET_CONF['target_type'], "KEY") === FALSE)
         {
-            // -----------------------------
-            // 対象IPアドレスをBANするルールを設定する
-            // -----------------------------
-            // ban4ipチェインの設定を取得する
-            $PROC_P = popen($IPTABLES." -L ban4ip -n", "r");
-            $TARGET_PATTERN = '/^'.$TARGET_CONF['target_rule'].' .* '.preg_replace('/\//', '\/', $TARGET_CONF['target_address']).'.*$/';
-            // ban4ipチェインに対象IPアドレスがないなら
-            if (psearch($PROC_P, $TARGET_PATTERN) == FALSE)
+            // 対象サービスについてBANのプロトコルとポートがともに'all'なら
+            if ($TARGET_CONF['target_protcol'] == 'all' && $TARGET_CONF['target_port'] == 'all')
             {
-                // BANする前のコマンド(exec_befor_ban)が設定されていたら実行(確実にBANする＝iptablesで設定する場合にのみ実行)
-                $TARGET_CONF = ban4ip_exec($TARGET_CONF, 'exec_befor_ban');
-                
-                $TARGET_CONF['log_msg'] .= 'until '.date("Y/m/d H:i:s", $TARGET_CONF['logtime'] + $TARGET_CONF['bantime'])."\n";
-                // ip6tablesのban4ipチェインに対象IPアドレスについて追加する
-                system($IPTABLES.' -I ban4ip --source '.$TARGET_CONF['target_address'].' --jump '.$TARGET_CONF['target_rule']);
-                
-                // BANした後のコマンド(exec_afer_ban)が設定されていたら実行(確実にBANする＝iptablesで設定する場合にのみ実行)
-                $TARGET_CONF = ban4ip_exec($TARGET_CONF, 'exec_after_ban');
-                
-                // BANした旨をメールで通知
-                ban4ip_banmailsend($TARGET_CONF);
+                // -----------------------------
+                // 対象IPアドレスをBANするルールを設定する
+                // -----------------------------
+                // ban4ipチェインの設定を取得する
+                $PROC_P = popen($IPTABLES." -L ban4ip -n", "r");
+                $TARGET_PATTERN = '/^'.$TARGET_CONF['target_rule'].' .* '.preg_replace('/\//', '\/', $TARGET_CONF['target_address']).'.*$/';
+                // ban4ipチェインに対象IPアドレスがないなら
+                if (psearch($PROC_P, $TARGET_PATTERN) == FALSE)
+                {
+                    
+                    $TARGET_CONF['log_msg'] .= 'until '.date("Y/m/d H:i:s", $TARGET_CONF['logtime'] + $TARGET_CONF['bantime'])."\n";
+                    // ip6tablesのban4ipチェインに対象IPアドレスについて追加する
+                    system($IPTABLES.' -I ban4ip --source '.$TARGET_CONF['target_address'].' --jump '.$TARGET_CONF['target_rule']);
+                    
+                    // BANした旨をメールで通知
+                    ban4ip_banmailsend($TARGET_CONF);
+                }
+                else
+                {
+                    $TARGET_CONF['log_msg'] .= 'changed '.date("Y/m/d H:i:s", $TARGET_CONF['logtime'] + $TARGET_CONF['bantime'])."\n";
+                }
+                pclose($PROC_P);
+                // -----------------------------
+                // BANデータベースに対象IPアドレス(とポートとルール)を登録(同じ設定がすでにあればUnbanまでの時間を延長、無ければ新規に追加)
+                // -----------------------------
+                $SQL_STR = "";
+                $SQL_STR .= "UPDATE ban_tbl SET service = '".$TARGET_CONF['target_service']."', unbandate = ".($TARGET_CONF['logtime'] + $TARGET_CONF['bantime'])." ";
+                $SQL_STR .= "  WHERE address = '".$TARGET_CONF['target_address']."' AND protcol = '".$TARGET_CONF['target_protcol']."' AND port = '".$TARGET_CONF['target_port']."' AND rule = '".$TARGET_CONF['target_rule']."'; ";
+                $SQL_STR .= "INSERT INTO ban_tbl (address, service, protcol, port, rule, unbandate) ";
+                $SQL_STR .= "  SELECT '".$TARGET_CONF['target_address']."','".$TARGET_CONF['target_service']."','".$TARGET_CONF['target_protcol']."','".$TARGET_CONF['target_port']."','".$TARGET_CONF['target_rule']."',".($TARGET_CONF['logtime'] + $TARGET_CONF['bantime'])." ";
+                $SQL_STR .= "    WHERE NOT EXISTS (SELECT 1 FROM ban_tbl WHERE address = '".$TARGET_CONF['target_address']."' AND protcol = '".$TARGET_CONF['target_protcol']."' AND port = '".$TARGET_CONF['target_port']."' AND rule = '".$TARGET_CONF['target_rule']."') ;";
+                // WAL内のデータをDBに書き出し(こうしないとban4ipc listで確認したり、別プロセスでsqlite3ですぐに確認できない…が、負荷的にはWALにしている意味がないよなぁ…)
+                $SQL_STR .= "PRAGMA wal_checkpoint;";
+                $TARGET_CONF['ban_db']->exec($SQL_STR);
             }
+            // 対象サービスについてBANのプロトコルとポートが個別に設定されているなら
+            else if (isset($TARGET_CONF['target_protcol']) && isset($TARGET_CONF['target_port']))
+            {
+                // -----------------------------
+                // 対象IPアドレスをBANするルールを設定する
+                // -----------------------------
+                // ban4ipチェインの設定を取得する
+                $PROC_P = popen($IPTABLES." -L ban4ip -n", "r");
+                $TARGET_PATTERN = '/^'.$TARGET_CONF['target_rule'].' .* '.preg_replace('/\//', '\/', $TARGET_CONF['target_address']).'.* '.$TARGET_CONF['target_protcol'].' dpt:'.$TARGET_CONF['target_port'].'$/';
+                // ban4ipチェインに対象IPアドレスがないなら
+                if (psearch($PROC_P, $TARGET_PATTERN) == FALSE)
+                {
+                    $TARGET_CONF['log_msg'] .= 'until '.date("Y/m/d H:i:s", $TARGET_CONF['logtime'] + $TARGET_CONF['bantime'])."\n";
+                    // ip6tablesのban4ipチェインに対象IPアドレスについて追加する
+                    system($IPTABLES.' -I ban4ip --source '.$TARGET_CONF['target_address'].' --proto '.$TARGET_CONF['target_protcol'].' --dport '.$TARGET_CONF['target_port'].' --jump '.$TARGET_CONF['target_rule']);
+                    
+                    // BANした旨をメールで通知
+                    ban4ip_banmailsend($TARGET_CONF);
+                }
+                else
+                {
+                    $TARGET_CONF['log_msg'] .= 'changed '.date("Y/m/d H:i:s", $TARGET_CONF['logtime'] + $TARGET_CONF['bantime'])."\n";
+                }
+                pclose($PROC_P);
+                // -----------------------------
+                // BANデータベースに対象IPアドレス(とポートとルール)を登録(同じ設定がすでにあればUnbanまでの時間を延長、無ければ新規に追加)
+                // -----------------------------
+                $SQL_STR = "";
+                $SQL_STR .= "UPDATE ban_tbl SET service = '".$TARGET_CONF['target_service']."', unbandate = ".($TARGET_CONF['logtime'] + $TARGET_CONF['bantime'])." ";
+                $SQL_STR .= "  WHERE address = '".$TARGET_CONF['target_address']."' AND protcol = '".$TARGET_CONF['target_protcol']."' AND port = '".$TARGET_CONF['target_port']."' AND rule = '".$TARGET_CONF['target_rule']."'; ";
+                $SQL_STR .= "INSERT INTO ban_tbl (address, service, protcol, port, rule, unbandate) ";
+                $SQL_STR .= "  SELECT '".$TARGET_CONF['target_address']."','".$TARGET_CONF['target_service']."','".$TARGET_CONF['target_protcol']."','".$TARGET_CONF['target_port']."','".$TARGET_CONF['target_rule']."',".($TARGET_CONF['logtime'] + $TARGET_CONF['bantime'])." ";
+                $SQL_STR .= "    WHERE NOT EXISTS (SELECT 1 FROM ban_tbl WHERE address = '".$TARGET_CONF['target_address']."' AND protcol = '".$TARGET_CONF['target_protcol']."' AND port = '".$TARGET_CONF['target_port']."' AND rule = '".$TARGET_CONF['target_rule']."') ;";
+                // WAL内のデータをDBに書き出し(こうしないとban4ipc listで確認したり、別プロセスでsqlite3ですぐに確認できない…が、負荷的にはWALにしている意味がないよなぁ…)
+                $SQL_STR .= "PRAGMA wal_checkpoint;";
+                $TARGET_CONF['ban_db']->exec($SQL_STR);
+            }
+            // ないなら(対象IPアドレスがBANの対象である旨のみ出力)
             else
             {
-                $TARGET_CONF['log_msg'] .= 'changed '.date("Y/m/d H:i:s", $TARGET_CONF['logtime'] + $TARGET_CONF['bantime'])."\n";
+                $TARGET_CONF['log_msg'] .= 'not BAN??'."\n";
             }
-            pclose($PROC_P);
-            // -----------------------------
-            // BANデータベースに対象IPアドレス(とポートとルール)を登録(同じ設定がすでにあればUnbanまでの時間を延長、無ければ新規に追加)
-            // -----------------------------
-            $SQL_STR = "";
-            $SQL_STR .= "UPDATE ban_tbl SET service = '".$TARGET_CONF['target_service']."', unbandate = ".($TARGET_CONF['logtime'] + $TARGET_CONF['bantime'])." ";
-            $SQL_STR .= "  WHERE address = '".$TARGET_CONF['target_address']."' AND protcol = '".$TARGET_CONF['target_protcol']."' AND port = '".$TARGET_CONF['target_port']."' AND rule = '".$TARGET_CONF['target_rule']."'; ";
-            $SQL_STR .= "INSERT INTO ban_tbl (address, service, protcol, port, rule, unbandate) ";
-            $SQL_STR .= "  SELECT '".$TARGET_CONF['target_address']."','".$TARGET_CONF['target_service']."','".$TARGET_CONF['target_protcol']."','".$TARGET_CONF['target_port']."','".$TARGET_CONF['target_rule']."',".($TARGET_CONF['logtime'] + $TARGET_CONF['bantime'])." ";
-            $SQL_STR .= "    WHERE NOT EXISTS (SELECT 1 FROM ban_tbl WHERE address = '".$TARGET_CONF['target_address']."' AND protcol = '".$TARGET_CONF['target_protcol']."' AND port = '".$TARGET_CONF['target_port']."' AND rule = '".$TARGET_CONF['target_rule']."') ;";
-            // WAL内のデータをDBに書き出し(こうしないとban4ipc listで確認したり、別プロセスでsqlite3ですぐに確認できない…が、負荷的にはWALにしている意味がないよなぁ…)
-            $SQL_STR .= "PRAGMA wal_checkpoint;";
-            $TARGET_CONF['ban_db']->exec($SQL_STR);
         }
-        // 対象サービスについてBANのプロトコルとポートが個別に設定されているなら
-        else if (isset($TARGET_CONF['target_protcol']) && isset($TARGET_CONF['target_port']))
-        {
-            // -----------------------------
-            // 対象IPアドレスをBANするルールを設定する
-            // -----------------------------
-            // ban4ipチェインの設定を取得する
-            $PROC_P = popen($IPTABLES." -L ban4ip -n", "r");
-            $TARGET_PATTERN = '/^'.$TARGET_CONF['target_rule'].' .* '.preg_replace('/\//', '\/', $TARGET_CONF['target_address']).'.* '.$TARGET_CONF['target_protcol'].' dpt:'.$TARGET_CONF['target_port'].'$/';
-            // ban4ipチェインに対象IPアドレスがないなら
-            if (psearch($PROC_P, $TARGET_PATTERN) == FALSE)
-            {
-                // BANする前のコマンド(exec_befor_ban)が設定されていたら実行(確実にBANする＝iptablesで設定する場合にのみ実行)
-                $TARGET_CONF = ban4ip_exec($TARGET_CONF, 'exec_befor_ban');
-                
-                $TARGET_CONF['log_msg'] .= 'until '.date("Y/m/d H:i:s", $TARGET_CONF['logtime'] + $TARGET_CONF['bantime'])."\n";
-                // ip6tablesのban4ipチェインに対象IPアドレスについて追加する
-                system($IPTABLES.' -I ban4ip --source '.$TARGET_CONF['target_address'].' --proto '.$TARGET_CONF['target_protcol'].' --dport '.$TARGET_CONF['target_port'].' --jump '.$TARGET_CONF['target_rule']);
-                
-                // BANした後のコマンド(exec_afer_ban)が設定されていたら実行(確実にBANする＝iptablesで設定する場合にのみ実行)
-                $TARGET_CONF = ban4ip_exec($TARGET_CONF, 'exec_after_ban');
-                
-                // BANした旨をメールで通知
-                ban4ip_banmailsend($TARGET_CONF);
-            }
-            else
-            {
-                $TARGET_CONF['log_msg'] .= 'changed '.date("Y/m/d H:i:s", $TARGET_CONF['logtime'] + $TARGET_CONF['bantime'])."\n";
-            }
-            pclose($PROC_P);
-            // -----------------------------
-            // BANデータベースに対象IPアドレス(とポートとルール)を登録(同じ設定がすでにあればUnbanまでの時間を延長、無ければ新規に追加)
-            // -----------------------------
-            $SQL_STR = "";
-            $SQL_STR .= "UPDATE ban_tbl SET service = '".$TARGET_CONF['target_service']."', unbandate = ".($TARGET_CONF['logtime'] + $TARGET_CONF['bantime'])." ";
-            $SQL_STR .= "  WHERE address = '".$TARGET_CONF['target_address']."' AND protcol = '".$TARGET_CONF['target_protcol']."' AND port = '".$TARGET_CONF['target_port']."' AND rule = '".$TARGET_CONF['target_rule']."'; ";
-            $SQL_STR .= "INSERT INTO ban_tbl (address, service, protcol, port, rule, unbandate) ";
-            $SQL_STR .= "  SELECT '".$TARGET_CONF['target_address']."','".$TARGET_CONF['target_service']."','".$TARGET_CONF['target_protcol']."','".$TARGET_CONF['target_port']."','".$TARGET_CONF['target_rule']."',".($TARGET_CONF['logtime'] + $TARGET_CONF['bantime'])." ";
-            $SQL_STR .= "    WHERE NOT EXISTS (SELECT 1 FROM ban_tbl WHERE address = '".$TARGET_CONF['target_address']."' AND protcol = '".$TARGET_CONF['target_protcol']."' AND port = '".$TARGET_CONF['target_port']."' AND rule = '".$TARGET_CONF['target_rule']."') ;";
-            // WAL内のデータをDBに書き出し(こうしないとban4ipc listで確認したり、別プロセスでsqlite3ですぐに確認できない…が、負荷的にはWALにしている意味がないよなぁ…)
-            $SQL_STR .= "PRAGMA wal_checkpoint;";
-            $TARGET_CONF['ban_db']->exec($SQL_STR);
-        }
-        // ないなら(対象IPアドレスがBANの対象である旨のみ出力)
-        else
-        {
-            $TARGET_CONF['log_msg'] .= 'not BAN??'."\n";
-        }
+        
+        // BANした後のコマンド(exec_afer_ban)が設定されていたら実行(iptablesで設定する市内にかかわらず実行するように変更)
+        $TARGET_CONF = ban4ip_exec($TARGET_CONF, 'exec_after_ban');
     }
     // 戻る
     return $TARGET_CONF;
