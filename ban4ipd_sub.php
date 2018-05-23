@@ -400,6 +400,12 @@ function ban4ip_loop($TARGET_CONF)
                                         // 結果を開放
                                         $DB_DATA = $RESULT->closeCursor();
                                     }
+                                    // 結果が0なのはおかしい…のでチェックルーチンに飛ぶ
+                                    if ($RESULT_COUNT == 0)
+                                    {
+                                        // 親プロセスにログメッセージを送信
+                                        ban4ip_dbcheck($TARGET_CONF);
+                                    }
                                     // もし検出回数以上になったら
                                     if ($RESULT_COUNT >= $TARGET_CONF['maxretry'])
                                     {
