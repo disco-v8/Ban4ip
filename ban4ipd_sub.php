@@ -253,6 +253,63 @@ function ban4ip_close($TARGET_CONF)
 // ----------------------------------------------------------------------
 // Sub Routine
 // ----------------------------------------------------------------------
+function ban4ip_sendmsg($TARGET_CONF)
+{
+    $FROM_SOCKET = '';
+    $SEND_MSG = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ".$TARGET_CONF['log_msg'];
+    
+    // UNIXソケットが開いていなかったら
+    if (!isset($TARGET_CONF['socket']) || !is_resource($TARGET_CONF['socket']))
+    {
+        // エラーメッセージに、UNIXソケットが開いていない旨を設定
+        print date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: WARN [".$TARGET_CONF['target_service']."] Socket not open!? (".$TARGET_CONF['conf_file'].")"."\n";
+        // 戻る
+        return;
+    }
+    // UNIXソケット経由でメッセージを親プロセスに送信
+    $SOCK_RESULT = socket_send($TARGET_CONF['socket'], $SEND_MSG, strlen($SEND_MSG), 0);
+    // もし送信できなかったら
+    if ($SOCK_RESULT === FALSE)
+    {
+        // エラーメッセージに、親プロセスに送信できなかった旨を設定
+        print date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: WARN [".$TARGET_CONF['target_service']."] Cannot send msg by socket!? (".$TARGET_CONF['conf_file'].")"."\n";
+        // 戻る
+        return;
+    }
+    // もしすべてを送信できなかったら
+    else if ($SOCK_RESULT != strlen($SEND_MSG))
+    {
+        // エラーメッセージに、親プロセスに全てを送信できなかった旨を設定
+        print date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: WARN [".$TARGET_CONF['target_service']."] Cannot send full msg by socket!? (".$TARGET_CONF['conf_file'].")"."\n";
+        // 戻る
+        return;
+    }
+}
+?>
+<?php
+// ----------------------------------------------------------------------
+// Sub Routine
+// ----------------------------------------------------------------------
+function ban4ip_dbcheck($TARGET_CONF)
+{
+    // ダメージリカバリが1:ONなら
+    if (isset($TARGET_CONF['damage_recover']) && $TARGET_CONF['damage_recover'] == 1)
+    {
+        // エラーの旨メッセージを設定
+        $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", $TARGET_CONF['logtime'])." ban4ip[".getmypid()."]: INFO [".$TARGET_CONF['target_service']."] Found(2)".$TARGET_CONF['target_address']." (".$RESULT_COUNT."/".$TARGET_CONF['maxretry']." counts ... RESULT_COUNT ERROR!? DELETE & REBOOT!)"."\n";
+        // 親プロセスに送信
+        ban4ip_sendmsg($TARGET_CONF);
+        // カウント用データベースファイルを削除
+        unlink($TARGET_CONF['db_dir'].'/count.db');
+        // サービスを再起動する
+        system('/usr/bin/ban4ipc restart');
+    }
+}
+?>
+<?php
+// ----------------------------------------------------------------------
+// Sub Routine
+// ----------------------------------------------------------------------
 function ban4ip_loop($TARGET_CONF)
 {
     // ログデータ初期化
@@ -355,7 +412,7 @@ function ban4ip_loop($TARGET_CONF)
                                     else
                                     {
                                         // 対象キーワードのカウント数のメッセージを設定
-                                        $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", $TARGET_CONF['logtime'])." ban4ip[".getmypid()."]: INFO [".$TARGET_CONF['target_service']."] Found ".$TARGET_CONF['target_keyword']." (".$RESULT_COUNT."/".$TARGET_CONF['maxretry']." counts)"."\n";
+                                        $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", $TARGET_CONF['logtime'])." ban4ip[".getmypid()."]: INFO [".$TARGET_CONF['target_service']."] Found(1) ".$TARGET_CONF['target_keyword']." (".$RESULT_COUNT."/".$TARGET_CONF['maxretry']." counts)"."\n";
                                         // 親プロセスに送信
                                         ban4ip_sendmsg($TARGET_CONF);
                                     }
@@ -447,6 +504,12 @@ function ban4ip_loop($TARGET_CONF)
                                         // 結果を開放
                                         $DB_DATA = $RESULT->closeCursor();
                                     }
+                                    // 結果が0なのはおかしい…のでチェックルーチンに飛ぶ
+                                    if ($RESULT_COUNT == 0)
+                                    {
+                                        // 親プロセスにログメッセージを送信
+                                        ban4ip_dbcheck($TARGET_CONF);
+                                    }
                                     // もし検出回数以上になったら
                                     if ($RESULT_COUNT >= $TARGET_CONF['maxretry'])
                                     {
@@ -459,7 +522,7 @@ function ban4ip_loop($TARGET_CONF)
                                     else
                                     {
                                         // 対象IPアドレスのカウント数のメッセージを設定
-                                        $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", $TARGET_CONF['logtime'])." ban4ip[".getmypid()."]: INFO [".$TARGET_CONF['target_service']."] Found ".$TARGET_CONF['target_address']." (".$RESULT_COUNT."/".$TARGET_CONF['maxretry']." counts)"."\n";
+                                        $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", $TARGET_CONF['logtime'])." ban4ip[".getmypid()."]: INFO [".$TARGET_CONF['target_service']."] Found(3) ".$TARGET_CONF['target_address']." (".$RESULT_COUNT."/".$TARGET_CONF['maxretry']." counts)"."\n";
                                         // 親プロセスに送信
                                         ban4ip_sendmsg($TARGET_CONF);
                                     }
