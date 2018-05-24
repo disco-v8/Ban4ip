@@ -296,7 +296,7 @@ function ban4ip_dbcheck($TARGET_CONF)
     if (isset($TARGET_CONF['damage_recover']) && $TARGET_CONF['damage_recover'] == 1)
     {
         // エラーの旨メッセージを設定
-        $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", $TARGET_CONF['logtime'])." ban4ip[".getmypid()."]: INFO [".$TARGET_CONF['target_service']."] Found(2)".$TARGET_CONF['target_address']." (".$RESULT_COUNT."/".$TARGET_CONF['maxretry']." counts ... RESULT_COUNT ERROR!? DELETE & REBOOT!)"."\n";
+        $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", $TARGET_CONF['logtime'])." ban4ip[".getmypid()."]: INFO [".$TARGET_CONF['target_service']."] Found(2)".$TARGET_CONF['target_address']." (RESULT_COUNT ERROR!? DELETE & REBOOT!)"."\n";
         // 親プロセスに送信
         ban4ip_sendmsg($TARGET_CONF);
         // カウント用データベースファイルを削除
