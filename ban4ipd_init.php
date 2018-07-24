@@ -279,3 +279,11 @@ $BAN4IPD_CONF['mailrate_db']->exec('PRAGMA synchronous=NORMAL');
 $BAN4IPD_CONF['mailrate_db']->setAttribute(PDO::ATTR_TIMEOUT, $BAN4IPD_CONF['db_timeout']);
 
 ?>
+<?php
+// ----------------------------------------------------------------------
+// Get init or systemd
+// ----------------------------------------------------------------------
+// システムがinit管理かsystemd管理かを取得
+$BAN4IPD_CONF['system_pid0'] = file_get_contents('/proc/1/comm');
+$BAN4IPD_CONF['system_pid0'] = rtrim($BAN4IPD_CONF['system_pid0']);
+?>
