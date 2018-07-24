@@ -476,7 +476,7 @@ do // SIGHUPに対応したループ構造にしている
         $SOCK_EXCEPT_ARRAY = NULL;
         
         // 親プロセスの開始完了を出力
-        $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: START"."\n";
+        $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: START under ".$BAN4IPD_CONF['system_pid0']."\n";
         // ログに出力する
         log_write($BAN4IPD_CONF);
         
