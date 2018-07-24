@@ -5,11 +5,11 @@ After=network.target iptables.service firewalld.service firewalld.service
 
 [Service]
 Type=forking
-ExecStart=/usr/bin/ban4ipd
+ExecStart=/usr/bin/ban4ipc start
 ExecStop=/usr/bin/ban4ipc stop
 ExecReload=/usr/bin/ban4ipc reload
 PIDFile=/var/run/ban4ipd.pid
-Restart=always
+Restart=no
 
 [Install]
 WantedBy=multi-user.target
