@@ -268,7 +268,7 @@ function ban4ip_loop($TARGET_CONF)
             if ($EVENT['mask'] & IN_MOVE_SELF)
             {
                 // 対象ファイルが切り詰められた？旨のメッセージを設定
-                $TARGET_CONF['log_msg'] = "INFO [".$TARGET_CONF['target_service']."] Stop. Target File was rotate? (".$TARGET_CONF['conf_file'].")"."\n";
+                $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: "."INFO [".$TARGET_CONF['target_service']."] Stop. Target File was rotate? (".$TARGET_CONF['conf_file'].")"."\n";
                 // 親プロセスに送信
                 ban4ip_sendmsg($TARGET_CONF);
                 // ログデータ解析処理を抜ける
@@ -724,7 +724,7 @@ function ban4ip_start($TARGET_CONF)
         else
         {
             // 子プロセスがスタートした旨を表示
-            $TARGET_CONF['log_msg'] = "INFO [".$TARGET_CONF['target_service']."] Co-Process Start. (".$TARGET_CONF['conf_file'].")"."\n";
+            $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: "."INFO [".$TARGET_CONF['target_service']."] Co-Process Start. (".$TARGET_CONF['conf_file'].")"."\n";
             // 親プロセスに送信
             ban4ip_sendmsg($TARGET_CONF);
             
