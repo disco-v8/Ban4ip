@@ -15,7 +15,8 @@
 function ban4ip_sendmsg($TARGET_CONF)
 {
     $FROM_SOCKET = '';
-    $SEND_MSG = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ".$TARGET_CONF['log_msg'];
+///    $SEND_MSG = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ".$TARGET_CONF['log_msg'];
+    $SEND_MSG = $TARGET_CONF['log_msg'];
     
     // UNIXソケットが開いていなかったら
     if (!isset($TARGET_CONF['socket']) || !is_resource($TARGET_CONF['socket']))
