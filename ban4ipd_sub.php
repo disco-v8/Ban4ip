@@ -351,6 +351,12 @@ function ban4ip_loop($TARGET_CONF)
                                         // 親プロセスにログメッセージを送信
                                         ban4ip_sendmsg($TARGET_CONF);
                                     }
+                                    // 結果が0なのはおかしい…のでチェックルーチンに飛ぶ
+                                    else if ($RESULT_COUNT == 0)
+                                    {
+                                        // 親プロセスにログメッセージを送信
+                                        ban4ip_dbcheck($TARGET_CONF);
+                                    }
                                     // 検出回数未満なら
                                     else
                                     {
@@ -454,6 +460,12 @@ function ban4ip_loop($TARGET_CONF)
                                         $TARGET_CONF = ban4ip_ban($TARGET_CONF);
                                         // 親プロセスにログメッセージを送信
                                         ban4ip_sendmsg($TARGET_CONF);
+                                    }
+                                    // 結果が0なのはおかしい…のでチェックルーチンに飛ぶ
+                                    else if ($RESULT_COUNT == 0)
+                                    {
+                                        // 親プロセスにログメッセージを送信
+                                        ban4ip_dbcheck($TARGET_CONF);
                                     }
                                     // 検出回数未満なら
                                     else
@@ -735,5 +747,25 @@ function ban4ip_start($TARGET_CONF)
         $TARGET_CONF = ban4ip_close($TARGET_CONF);
     }
     while ($TARGET_CONF['loop_mode'] == 1);
+}
+?>
+<?php
+// ----------------------------------------------------------------------
+// Sub Routine
+// ----------------------------------------------------------------------
+function ban4ip_dbcheck($TARGET_CONF)
+{
+    // ダメージリカバリフラグが設定されていない(=前のconfig引きずってる)か、フラグが1:ONなら
+    if (!isset($TARGET_CONF['damage_recover']) || (isset($TARGET_CONF['damage_recover']) && $TARGET_CONF['damage_recover'] == 1))
+    {
+        // エラーの旨メッセージを設定
+        $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", $TARGET_CONF['logtime'])." ban4ip[".getmypid()."]: WARN [".$TARGET_CONF['target_service']."] Cannot INSERT or SELECT from DB, ".$TARGET_CONF['target_address']." ... RESULT_COUNT ERROR!? DELETE & REBOOT!)"."\n";
+        // 親プロセスに送信
+        ban4ip_sendmsg($TARGET_CONF);
+        // カウント用データベースファイルを削除
+        unlink($TARGET_CONF['db_dir'].'/count.db');
+        // サービスを再起動する
+        system('/usr/bin/ban4ipc restart');
+    }
 }
 ?>
