@@ -352,28 +352,13 @@ switch($argv[1])
         print 'ban4ipd reload ... Please check LOG file.'."\n";
         // 終わり
         exit;
+    case "list" :
+        // BANしているIPアドレスの一覧を出力
+        ban4ip_banlist($BAN4IPD_CONF);
+        // 終わり
+        exit;
 }
 
-// ----------------
-// Check and Init ban4ip DB
-// ----------------
-// カウント用データベースのチェックがfalseなら
-if (ban4ip_dbcheck(0) == false)
-{
-    // カウント用データベースファイルを削除
-    unlink($BAN4IPD_CONF['pdo_dsn_count']);
-    // データベースの再初期化を行う
-    ban4ip_dbinit();
-}
-
-// もし list パラメータがついていたなら
-if ($argv[1] == 'list')
-{
-    // BANしているIPアドレスの一覧を出力
-    ban4ip_banlist($BAN4IPD_CONF);
-    // 終わり
-    exit;
-}
 // もし --ban パラメータがついていたなら
 if (isset($BAN4IPC_OPTIONS['ban']))
 {
