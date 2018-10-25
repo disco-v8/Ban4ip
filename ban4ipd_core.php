@@ -345,18 +345,6 @@ system($BAN4IPD_CONF['ip6tables'].' -I INPUT -j ban4ip');
 // ----------------------------------------------------------------------
 do // SIGHUPに対応したループ構造にしている
 {
-    // ----------------
-    // Check and Init ban4ip DB
-    // ----------------
-    // カウント用データベースのチェックがfalseなら
-    if (ban4ip_dbcheck(1) == false)
-    {
-        // カウント用データベースファイルを削除
-        unlink($BAN4IPD_CONF['pdo_dsn_count']);
-        // データベースの再初期化を行う
-        ban4ip_dbinit();
-    }
-    
     // 再読み込み要求を初期化
     $BAN4IPD_CONF['reload'] = 0;
     
