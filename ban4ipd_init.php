@@ -89,6 +89,265 @@ function psearch($PP, $PATTERN)
 ?>
 <?php
 // ----------------------------------------------------------------------
+// Sub Routine
+// ----------------------------------------------------------------------
+function log_write($BAN4IPD_CONF)
+{
+    // ログファイルの指定がないなら
+    if (!isset($BAN4IPD_CONF['log_file']) || !is_file($BAN4IPD_CONF['log_file']))
+    {
+        print $BAN4IPD_CONF['log_msg'];
+        return;
+    }
+    
+    // ログファイルポインタが開かれていないなら
+    if (!isset($BAN4IPD_CONF['log_p']))
+    {
+        $BAN4IPD_CONF['log_p'] = fopen($BAN4IPD_CONF['log_file'], 'a');
+    }
+    // ログファイルポインタが開かれているなら
+    if (is_resource($BAN4IPD_CONF['log_p']))
+    {
+        // ログファイルを排他的ロック
+        while(!flock($BAN4IPD_CONF['log_p'], LOCK_EX));
+        // ログファイルの一番最後までシーク
+        fseek($BAN4IPD_CONF['log_p'], 0, SEEK_END);
+        // ログファイルに書き出し
+        fprintf($BAN4IPD_CONF['log_p'], $BAN4IPD_CONF['log_msg']);
+        // ログファイルをアンロック
+        flock($BAN4IPD_CONF['log_p'], LOCK_UN);
+    }
+    else
+    {
+        print $BAN4IPD_CONF['log_msg'];
+    }
+    
+}
+?>
+<?php
+// ----------------------------------------------------------------------
+// Sub Routine
+// ----------------------------------------------------------------------
+function ban4ip_dbinit()
+{
+    global $BAN4IPD_CONF;
+    
+    // SQLite3データベース用のディレクトリを作成(エラー出力を抑制)
+    @mkdir($BAN4IPD_CONF['db_dir']);
+    // SQLite3データベース用のディレクトリがないなら
+    if (!is_dir($BAN4IPD_CONF['db_dir']))
+    {
+        $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR ".$BAN4IPD_CONF['db_dir']." not found!?"."\n";
+        // ログに出力する
+        log_write($BAN4IPD_CONF);
+        // 終わり
+        exit -1;
+    }
+    
+    // ----------------
+    // カウントデータベースのデータソース名(DSN)の指定がなければ、
+    // ----------------
+    if (empty($BAN4IPD_CONF['pdo_dsn_count']))
+    {
+        // カウントデータベースに接続(無ければ新規に作成)
+        $BAN4IPD_CONF['pdo_dsn_count'] = 'sqlite:' . $BAN4IPD_CONF['db_dir'].'/count.db';
+    }
+    // カウントデータベースがすでに接続されていたら
+    if (isset($BAN4IPD_CONF['count_db']) && $BAN4IPD_CONF['count_db'] != null)
+    {
+        // いったん切断
+        $BAN4IPD_CONF['count_db'] = null;
+        // 100msくらいのウェイトを置く
+        usleep(100000);
+    }
+    // カウントデータベースに接続を試す
+    try
+    {
+        $BAN4IPD_CONF['count_db'] = new PDO($BAN4IPD_CONF['pdo_dsn_count']);
+    }
+    // 接続できなかったら(失敗した場合、 PDOException を投げてくる)
+    catch(PDOException $e)
+    {
+        $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR ".$BAN4IPD_CONF['pdo_dsn_count']." not Connection!? ".$e->getMessage()."\n";
+        // ログに出力する
+        log_write($BAN4IPD_CONF);
+        // 終わり
+        exit -1;
+    }
+    
+    // テーブルがなかったら作成
+    $BAN4IPD_CONF['count_db']->exec('CREATE TABLE IF NOT EXISTS count_tbl (address, service, registdate)');
+    // インデックスを作成する
+    $BAN4IPD_CONF['count_db']->exec('CREATE INDEX IF NOT EXISTS count_idx ON count_tbl (address)');
+    
+    // journal_modeをWALにする
+    $BAN4IPD_CONF['count_db']->exec('PRAGMA journal_mode=WAL');
+    // synchronousをNORMALにする
+    $BAN4IPD_CONF['count_db']->exec('PRAGMA synchronous=NORMAL');
+    
+    // カウントデータベースのロックタイムアウト時間を少し長くする
+    $BAN4IPD_CONF['count_db']->exec('PRAGMA busy_timeout='.$BAN4IPD_CONF['db_timeout']);
+    
+    // カウントデータベースの確認結果を出力
+///    $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: CHECK ".$BAN4IPD_CONF['pdo_dsn_count'].", OK!"."\n";
+    // ログに出力する
+///    log_write($BAN4IPD_CONF);
+    
+    // ----------------
+    // BANデータベースのデータソース名(DSN)の指定がなければ、
+    // ----------------
+    if (empty($BAN4IPD_CONF['pdo_dsn_ban']))
+    {
+        // BANデータベースに接続(無ければ新規に作成)
+        $BAN4IPD_CONF['pdo_dsn_ban'] = 'sqlite:' . $BAN4IPD_CONF['db_dir'].'/ban.db';
+    }
+    // BANデータベースがすでに接続されていたら
+    if (isset($BAN4IPD_CONF['ban_db']) && $BAN4IPD_CONF['ban_db'] != null)
+    {
+        // いったん切断
+        $BAN4IPD_CONF['ban_db'] = null;
+        // 100msくらいのウェイトを置く
+        usleep(100000);
+    }
+    // BANデータベースに接続を試す
+    try
+    {
+        $BAN4IPD_CONF['ban_db'] = new PDO($BAN4IPD_CONF['pdo_dsn_ban']);
+    }
+    // 接続できなかったら(失敗した場合、 PDOException を投げてくる)
+    catch(PDOException $e)
+    {
+        $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR ".$BAN4IPD_CONF['pdo_dsn_ban']." not Connection!? ".$e->getMessage()."\n";
+        // ログに出力する
+        log_write($BAN4IPD_CONF);
+        // 終わり
+        exit -1;
+    }
+    
+    // テーブルがなかったら作成
+    $BAN4IPD_CONF['ban_db']->exec('CREATE TABLE IF NOT EXISTS ban_tbl (address, service, protcol, port, rule, unbandate)');
+    // インデックスを作成する
+    $BAN4IPD_CONF['ban_db']->exec('CREATE INDEX IF NOT EXISTS ban_idx ON ban_tbl (address)');
+    
+    // journal_modeをWALにする
+    $BAN4IPD_CONF['ban_db']->exec('PRAGMA journal_mode=WAL');
+    // synchronousをNORMALにする
+    $BAN4IPD_CONF['ban_db']->exec('PRAGMA synchronous=NORMAL');
+    
+    // BANデータベースのロックタイムアウト時間を少し長くする
+    $BAN4IPD_CONF['ban_db']->exec('PRAGMA busy_timeout='.$BAN4IPD_CONF['db_timeout']);
+    
+    // BANデータベースの確認結果を出力
+///    $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: CHECK ".$BAN4IPD_CONF['pdo_dsn_ban'].", OK!"."\n";
+    // ログに出力する
+///    log_write($BAN4IPD_CONF);
+    
+    // ----------------
+    // メール送信レートデータベースのデータソース名(DSN)の指定がなければ、
+    // ----------------
+    if (empty($BAN4IPD_CONF['pdo_dsn_mailrate']))
+    {
+        // メール送信レートテーブルデータベースに接続(無ければ新規に作成)
+        $BAN4IPD_CONF['pdo_dsn_mailrate'] = 'sqlite:' . $BAN4IPD_CONF['db_dir'].'/mailrate.db';
+    }
+    // メール送信レートテーブルデータベースがすでに接続されていたら
+    if (isset($BAN4IPD_CONF['mailrate_db']) && $BAN4IPD_CONF['mailrate_db'] != null)
+    {
+        // いったん切断
+        $BAN4IPD_CONF['mailrate_db'] = null;
+        // 100msくらいのウェイトを置く
+        usleep(100000);
+    }
+    // メール送信レートテーブルデータベースに接続を試す
+    try
+    {
+        $BAN4IPD_CONF['mailrate_db'] = new PDO($BAN4IPD_CONF['pdo_dsn_mailrate']);
+    }
+    // 接続できなかったら(失敗した場合、 PDOException を投げてくる)
+    catch(PDOException $e)
+    {
+        $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR ".$BAN4IPD_CONF['pdo_dsn_mailrate']." not Connection!? ".$e->getMessage()."\n";
+        // ログに出力する
+        log_write($BAN4IPD_CONF);
+        // 終わり
+        exit -1;
+    }
+    
+    // テーブルがなかったら作成
+    $BAN4IPD_CONF['mailrate_db']->exec('CREATE TABLE IF NOT EXISTS mailrate_tbl (to_address, title, registdate, UNIQUE (to_address, title) )');
+    // インデックスを作成する
+    $BAN4IPD_CONF['mailrate_db']->exec('CREATE INDEX IF NOT EXISTS mailrate_idx ON mailrate_tbl (to_address, title)');
+    
+    // journal_modeをWALにする
+    $BAN4IPD_CONF['mailrate_db']->exec('PRAGMA journal_mode=WAL');
+    // synchronousをNORMALにする
+    $BAN4IPD_CONF['mailrate_db']->exec('PRAGMA synchronous=NORMAL');
+    
+    // メール送信レートテーブルデータベースのロックタイムアウト時間を少し長くする
+    $BAN4IPD_CONF['mailrate_db']->exec('PRAGMA busy_timeout='.$BAN4IPD_CONF['db_timeout']);
+    
+    // メール送信レートテーブルデータベースの確認結果を出力
+///    $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: CHECK ".$BAN4IPD_CONF['pdo_dsn_mailrate'].", OK!"."\n";
+    // ログに出力する
+///    log_write($BAN4IPD_CONF);
+}
+?>
+<?php
+// ----------------------------------------------------------------------
+// Sub Routine
+// ----------------------------------------------------------------------
+function ban4ip_dbcheck($LOG_FLAG)
+{
+    global $BAN4IPD_CONF;
+    
+    // テスト用のデータを設定
+    $BAN4IPD_CONF['target_address'] = '198.51.100.100';
+    $BAN4IPD_CONF['target_service'] = 'test';
+    $BAN4IPD_CONF['logtime'] = local_time();
+    
+    // カウントデータベースにカウント対象IPアドレスを登録
+    $BAN4IPD_CONF['count_db']->exec("INSERT INTO count_tbl VALUES ('".$BAN4IPD_CONF['target_address']."','".$BAN4IPD_CONF['target_service']."',".$BAN4IPD_CONF['logtime'].")");
+    // カウントデータベースで対象IPアドレスが対象時間内に何個存在するか取得
+    $RESULT = $BAN4IPD_CONF['count_db']->query("SELECT COUNT(address) AS addr_count FROM count_tbl WHERE address = '".$BAN4IPD_CONF['target_address']."' AND service = '".$BAN4IPD_CONF['target_service']."'");
+    
+    // 対象IPアドレスの検出回数を初期化
+    $RESULT_COUNT = 0;
+    // 結果が取得できているなら
+    if ($RESULT)
+    {
+        // 結果を取得
+        $DB_DATA = $RESULT->fetch(PDO::FETCH_ASSOC);
+        // 対象IPアドレスの検出回数を取得
+        $RESULT_COUNT = $DB_DATA['addr_count'];
+        // 結果を開放
+        $DB_DATA = $RESULT->closeCursor();
+    }
+    // もし検出できなかったら
+    if ($RESULT_COUNT == 0)
+    {
+        // エラーの旨メッセージを設定
+        $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR ".$BAN4IPD_CONF['pdo_dsn_count']." cannot INSERT or SELECT!? DELETE & REBOOT! "."\n";
+        // ログに出力する
+        log_write($BAN4IPD_CONF);
+        // falseを返す
+        return false;
+    }
+    // カウントデータベースから該当サービスの現在時刻 - 対象時間より昔のカウントデータを削除
+    $BAN4IPD_CONF['count_db']->exec("DELETE FROM count_tbl WHERE address = '".$BAN4IPD_CONF['target_address']."' AND service = '".$BAN4IPD_CONF['target_service']."'");
+    // チェック正常でもログ出力フラグが1なら
+    if ($LOG_FLAG == 1)
+    {
+        // 対象IPアドレスのカウント数のメッセージを設定
+        $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: CHECK ".$BAN4IPD_CONF['pdo_dsn_count'].", OK!"."\n";
+        // ログに出力する
+        log_write($BAN4IPD_CONF);
+    }
+    // trueを返す
+    return true;
+}
+?>
+<?php
+// ----------------------------------------------------------------------
 // Check inotify module
 // ----------------------------------------------------------------------
 // inotifyモジュールがあるか確認
@@ -161,123 +420,10 @@ if ($BAN4IPD_CONF === FALSE)
 ?>
 <?php
 // ----------------------------------------------------------------------
-// Check ban4ip SQLite3 DB
+// Init ban4ip DB
 // ----------------------------------------------------------------------
-// SQLite3データベース用のディレクトリを作成(エラー出力を抑制)
-@mkdir($BAN4IPD_CONF['db_dir']);
-// SQLite3データベース用のディレクトリがないなら
-if (!is_dir($BAN4IPD_CONF['db_dir']))
-{
-    print $BAN4IPD_CONF['db_dir']." not found!?"."\n";
-    // 終わり
-    exit -1;
-}
-
-// ----------------
-// カウントデータベースのデータソース名(DSN)の指定がなければ、
-// ----------------
-if (empty($BAN4IPD_CONF['pdo_dsn_count']))
-{
-    // カウントデータベースに接続(無ければ新規に作成)
-    $BAN4IPD_CONF['pdo_dsn_count'] = 'sqlite:' . $BAN4IPD_CONF['db_dir'].'/count.db';
-}
-// カウントデータベースに接続を試す
-try
-{
-    $BAN4IPD_CONF['count_db'] = new PDO($BAN4IPD_CONF['pdo_dsn_count']);
-}
-// 接続できなかったら(失敗した場合、 PDOException を投げてくる)
-catch(PDOException $e)
-{
-    print $BAN4IPD_CONF['pdo_dsn_count']." not Connection!?"."\n";
-    print $e->getMessage()."\n";
-    // 終わり
-    exit -1;
-}
-
-// テーブルがなかったら作成
-$BAN4IPD_CONF['count_db']->exec('CREATE TABLE IF NOT EXISTS count_tbl (address, service, registdate)');
-// インデックスを作成する
-$BAN4IPD_CONF['count_db']->exec('CREATE INDEX IF NOT EXISTS count_idx ON count_tbl (address)');
-
-// journal_modeをWALにする
-$BAN4IPD_CONF['count_db']->exec('PRAGMA journal_mode=WAL');
-// synchronousをNORMALにする
-$BAN4IPD_CONF['count_db']->exec('PRAGMA synchronous=NORMAL');
-
-// カウントデータベースのロックタイムアウト時間を少し長くする
-$BAN4IPD_CONF['count_db']->setAttribute(PDO::ATTR_TIMEOUT, $BAN4IPD_CONF['db_timeout']);
-
-// ----------------
-// BANデータベースのデータソース名(DSN)の指定がなければ、
-// ----------------
-if (empty($BAN4IPD_CONF['pdo_dsn_ban']))
-{
-    // BANデータベースに接続(無ければ新規に作成)
-    $BAN4IPD_CONF['pdo_dsn_ban'] = 'sqlite:' . $BAN4IPD_CONF['db_dir'].'/ban.db';
-}
-// BANデータベースに接続を試す
-try
-{
-    $BAN4IPD_CONF['ban_db'] = new PDO($BAN4IPD_CONF['pdo_dsn_ban']);
-}
-// 接続できなかったら(失敗した場合、 PDOException を投げてくる)
-catch(PDOException $e)
-{
-    print $BAN4IPD_CONF['pdo_dsn_ban']." not Connection!?"."\n";
-    print $e->getMessage()."\n";
-    // 終わり
-    exit -1;
-}
-
-// テーブルがなかったら作成
-$BAN4IPD_CONF['ban_db']->exec('CREATE TABLE IF NOT EXISTS ban_tbl (address, service, protcol, port, rule, unbandate)');
-// インデックスを作成する
-$BAN4IPD_CONF['ban_db']->exec('CREATE INDEX IF NOT EXISTS ban_idx ON ban_tbl (address)');
-
-// journal_modeをWALにする
-$BAN4IPD_CONF['ban_db']->exec('PRAGMA journal_mode=WAL');
-// synchronousをNORMALにする
-$BAN4IPD_CONF['ban_db']->exec('PRAGMA synchronous=NORMAL');
-
-// BANデータベースのロックタイムアウト時間を少し長くする
-$BAN4IPD_CONF['ban_db']->setAttribute(PDO::ATTR_TIMEOUT, $BAN4IPD_CONF['db_timeout']);
-
-// ----------------
-// メール送信レートデータベースのデータソース名(DSN)の指定がなければ、
-// ----------------
-if (empty($BAN4IPD_CONF['pdo_dsn_mailrate']))
-{
-    // メール送信レートテーブルデータベースに接続(無ければ新規に作成)
-    $BAN4IPD_CONF['pdo_dsn_mailrate'] = 'sqlite:' . $BAN4IPD_CONF['db_dir'].'/mailrate.db';
-}
-// メール送信レートテーブルデータベースに接続を試す
-try
-{
-    $BAN4IPD_CONF['mailrate_db'] = new PDO($BAN4IPD_CONF['pdo_dsn_mailrate']);
-}
-// 接続できなかったら(失敗した場合、 PDOException を投げてくる)
-catch(PDOException $e)
-{
-    print $BAN4IPD_CONF['pdo_dsn_mailrate']." not Connection!?"."\n";
-    print $e->getMessage()."\n";
-    // 終わり
-    exit -1;
-}
-
-// テーブルがなかったら作成
-$BAN4IPD_CONF['mailrate_db']->exec('CREATE TABLE IF NOT EXISTS mailrate_tbl (to_address, title, registdate, UNIQUE (to_address, title) )');
-// インデックスを作成する
-$BAN4IPD_CONF['mailrate_db']->exec('CREATE INDEX IF NOT EXISTS mailrate_idx ON mailrate_tbl (to_address, title)');
-
-// journal_modeをWALにする
-$BAN4IPD_CONF['mailrate_db']->exec('PRAGMA journal_mode=WAL');
-// synchronousをNORMALにする
-$BAN4IPD_CONF['mailrate_db']->exec('PRAGMA synchronous=NORMAL');
-
-// メール送信レートテーブルデータベースのロックタイムアウト時間を少し長くする
-$BAN4IPD_CONF['mailrate_db']->setAttribute(PDO::ATTR_TIMEOUT, $BAN4IPD_CONF['db_timeout']);
-
+// データベースの初期化(接続や必要に応じてテーブル生成)を行う
+ban4ip_dbinit();
 ?>
 <?php
 // ----------------------------------------------------------------------
