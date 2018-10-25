@@ -294,60 +294,6 @@ function ban4ip_dbinit()
 ?>
 <?php
 // ----------------------------------------------------------------------
-// Sub Routine
-// ----------------------------------------------------------------------
-function ban4ip_dbcheck($LOG_FLAG)
-{
-    global $BAN4IPD_CONF;
-    
-    // テスト用のデータを設定
-    $BAN4IPD_CONF['target_address'] = '198.51.100.100';
-    $BAN4IPD_CONF['target_service'] = 'test';
-    $BAN4IPD_CONF['logtime'] = local_time();
-    
-    // カウントデータベースにカウント対象IPアドレスを登録
-    $BAN4IPD_CONF['count_db']->exec("INSERT INTO count_tbl VALUES ('".$BAN4IPD_CONF['target_address']."','".$BAN4IPD_CONF['target_service']."',".$BAN4IPD_CONF['logtime'].")");
-    // カウントデータベースで対象IPアドレスが対象時間内に何個存在するか取得
-    $RESULT = $BAN4IPD_CONF['count_db']->query("SELECT COUNT(address) AS addr_count FROM count_tbl WHERE address = '".$BAN4IPD_CONF['target_address']."' AND service = '".$BAN4IPD_CONF['target_service']."'");
-    
-    // 対象IPアドレスの検出回数を初期化
-    $RESULT_COUNT = 0;
-    // 結果が取得できているなら
-    if ($RESULT)
-    {
-        // 結果を取得
-        $DB_DATA = $RESULT->fetch(PDO::FETCH_ASSOC);
-        // 対象IPアドレスの検出回数を取得
-        $RESULT_COUNT = $DB_DATA['addr_count'];
-        // 結果を開放
-        $DB_DATA = $RESULT->closeCursor();
-    }
-    // もし検出できなかったら
-    if ($RESULT_COUNT == 0)
-    {
-        // エラーの旨メッセージを設定
-        $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR ".$BAN4IPD_CONF['pdo_dsn_count']." cannot INSERT or SELECT!? DELETE & REBOOT! "."\n";
-        // ログに出力する
-        log_write($BAN4IPD_CONF);
-        // falseを返す
-        return false;
-    }
-    // カウントデータベースから該当サービスの現在時刻 - 対象時間より昔のカウントデータを削除
-    $BAN4IPD_CONF['count_db']->exec("DELETE FROM count_tbl WHERE address = '".$BAN4IPD_CONF['target_address']."' AND service = '".$BAN4IPD_CONF['target_service']."'");
-    // チェック正常でもログ出力フラグが1なら
-    if ($LOG_FLAG == 1)
-    {
-        // 対象IPアドレスのカウント数のメッセージを設定
-        $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: CHECK ".$BAN4IPD_CONF['pdo_dsn_count'].", OK!"."\n";
-        // ログに出力する
-        log_write($BAN4IPD_CONF);
-    }
-    // trueを返す
-    return true;
-}
-?>
-<?php
-// ----------------------------------------------------------------------
 // Check inotify module
 // ----------------------------------------------------------------------
 // inotifyモジュールがあるか確認
