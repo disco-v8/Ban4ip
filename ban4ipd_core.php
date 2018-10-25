@@ -21,43 +21,6 @@ require(__DIR__."/ban4ipd_unban.php");
 require(__DIR__."/ban4ipd_exec.php");
 ?>
 <?php
-// --------------------
-// Sub Routine
-// --------------------
-function log_write($BAN4IPD_CONF)
-{
-    // ログファイルの指定がないなら
-    if (!isset($BAN4IPD_CONF['log_file']) || !is_file($BAN4IPD_CONF['log_file']))
-    {
-        print $BAN4IPD_CONF['log_msg'];
-        return;
-    }
-    
-    // ログファイルポインタが開かれていないなら
-    if (!isset($BAN4IPD_CONF['log_p']))
-    {
-        $BAN4IPD_CONF['log_p'] = fopen($BAN4IPD_CONF['log_file'], 'a');
-    }
-    // ログファイルポインタが開かれているなら
-    if (is_resource($BAN4IPD_CONF['log_p']))
-    {
-        // ログファイルを排他的ロック
-        while(!flock($BAN4IPD_CONF['log_p'], LOCK_EX));
-        // ログファイルの一番最後までシーク
-        fseek($BAN4IPD_CONF['log_p'], 0, SEEK_END);
-        // ログファイルに書き出し
-        fprintf($BAN4IPD_CONF['log_p'], $BAN4IPD_CONF['log_msg']);
-        // ログファイルをアンロック
-        flock($BAN4IPD_CONF['log_p'], LOCK_UN);
-    }
-    else
-    {
-        print $BAN4IPD_CONF['log_msg'];
-    }
-    
-}
-?>
-<?php
 // ----------------------------------------------------------------------
 // Sub Routine
 // ----------------------------------------------------------------------
@@ -382,6 +345,18 @@ system($BAN4IPD_CONF['ip6tables'].' -I INPUT -j ban4ip');
 // ----------------------------------------------------------------------
 do // SIGHUPに対応したループ構造にしている
 {
+    // ----------------
+    // Check and Init ban4ip DB
+    // ----------------
+    // カウント用データベースのチェックがfalseなら
+    if (ban4ip_dbcheck(1) == false)
+    {
+        // カウント用データベースファイルを削除
+        unlink($BAN4IPD_CONF['pdo_dsn_count']);
+        // データベースの再初期化を行う
+        ban4ip_dbinit();
+    }
+    
     // 再読み込み要求を初期化
     $BAN4IPD_CONF['reload'] = 0;
     
@@ -495,9 +470,13 @@ do // SIGHUPに対応したループ構造にしている
             // UNIXソケットの変化が取得できないなら
             if ($SOCK_RESULT === FALSE)
             {
-                $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR "." Cannot socket_select!? (".socket_strerror(socket_last_error()).")"."\n";
-                // ログに出力する
-                log_write($BAN4IPD_CONF);
+                // 再読み込み要求(reload=1)ではないなら
+                if ($BAN4IPD_CONF['reload'] != 1)
+                {
+                    $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR "." Cannot socket_select!? (".socket_strerror(socket_last_error()).")"."\n";
+                    // ログに出力する
+                    log_write($BAN4IPD_CONF);
+                }
             }
             // UNIXソケットに変化がないなら
             else if ($SOCK_RESULT == 0)
