@@ -43,4 +43,8 @@
 ; Ver.00.28    2018.03.12   Add target type mode (new! "target_type", "IP"(default, if nothing) or "KEYWORD")
 ;                           Change exec command flow, Befor/After BAN. (execute regardless of BAN)
 ;                           Bug fix. (exec command argument)
+; Ver.00.29    2018.07.24   Check init or systemd logic. (exec command argument)
+;                           ExecStart fix. (/usr/bin/ban4ipd -> /usr/bin/ban4ipc start, Restart=always -> no)
+;                           Bug fix. (date-time double print on log file in ban4ip_sendmsg())
+; Ver.00.30    2018.10.25   Add damage_recover flag (check count.db)
 ;
