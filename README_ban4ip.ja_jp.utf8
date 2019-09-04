@@ -18,16 +18,15 @@ fail2banがIPv6に対応してくれなかったので、作りました。
     php-mbstring
     php-pdo (SQLite3)
     php-process
-    PECL inotify
+    php-inotify
     procps
 
 
 使い方:
 
-Step0. インストールしてください(例. CentOS6の場合)
+Step0. インストールしてください(例. CentOS7の場合)
 
-yum -y install php php-devel php-pear php-mbstring php-pdo php-process
-pecl install channel://pecl.php.net/inotify-0.x.x
+yum -y install php php-devel php-pear php-mbstring php-pdo php-process php-pecl-inotify
 
 wget 'https://github.com/disco-v8/Ban4ip/archive/master.zip' -O Ban4ip-master.zip
 unzip ./Ban4ip-master.zip
@@ -107,9 +106,17 @@ ban4ipc -h
 
 技術メモ:
 
+CentOS6では
+
 "Inotify extension not loaded!?", but PECL inotify installed.
 
-「extension=inotify.so」を/etc/php.d/inotify.iniなどに記述してください。
+となった場合、
+
+pecl install channel://pecl.php.net/inotify-0.x.x
+
+として、inotifyを入れないといけません。
+
+「extension=inotify.so」を/etc/php.d/inotify.iniなどに記述するのを忘れずに。
 
 "PHP Fatal error:  Class 'SQLite3' not found in /root/ban4ip/ban4ipd.php on line 330"
 
