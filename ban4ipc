@@ -37,6 +37,118 @@ require(__DIR__."/ban4ipd_exec.php");
 // ----------------------------------------------------------------------
 // Sub Routine
 // ----------------------------------------------------------------------
+function ban4ip_mail_send()
+{
+    // メール送信のパラメータを設定(それぞれのプロセスのTARGET_CONFがなかったり、宛先がなかったらFALSEで戻る。それ以外は空でも送信処理をする)
+    $MAIL_ARG = func_get_args();
+    // それぞれのプロセスのTARGET_CONFが設定されていなかったり、配列でなかったら
+    if (!isset($MAIL_ARG[0]) || !is_array($MAIL_ARG[0]))
+    {
+        // FALSEで戻る
+        return FALSE;
+    }
+    // パラメータがあるなら
+    else
+    {
+        // TARGET_CONFを設定
+        $TARGET_CONF = $MAIL_ARG[0];
+    }
+    
+    // 宛先に相当するパラメータが設定されていないなら
+    if (!isset($MAIL_ARG[1]))
+    {
+        // NULLを設定
+///        $MAIL_TO = NULL;
+        // FALSEで戻る
+        return FALSE;
+    }
+    // パラメータがあるなら
+    else
+    {
+        // 宛先を設定
+        $MAIL_TO = $MAIL_ARG[1];
+    }
+    
+    // タイトルに相当するパラメータが設定されていないなら
+    if (!isset($MAIL_ARG[2]))
+    {
+        // NULLを設定
+        $MAIL_TITLE = NULL;
+    }
+    // パラメータがあるなら
+    else
+    {
+        // タイトルを設定
+        $MAIL_TITLE = $MAIL_ARG[2];
+    }
+    
+    // 本文に相当するパラメータが設定されていないなら
+    if (!isset($MAIL_ARG[3]))
+    {
+        // NULLを設定
+        $MAIL_STR = NULL;
+    }
+    // パラメータがあるなら
+    else
+    {
+        // 本文を設定
+        $MAIL_STR = $MAIL_ARG[3];
+    }
+    
+    // ヘッダーオプションに相当するパラメータが設定されていないなら
+    if (!isset($MAIL_ARG[4]))
+    {
+        // NULLを設定
+        $MAIL_HEADER = NULL;
+    }
+    // パラメータがあるなら
+    else
+    {
+        // ヘッダーオプションを設定
+        $MAIL_HEADER = $MAIL_ARG[4];
+    }
+    
+    // メールオプションに相当するパラメータが設定されていないなら
+    if (!isset($MAIL_ARG[5]))
+    {
+        // NULLを設定
+        $MAIL_PARAM = NULL;
+    }
+    // パラメータがあるなら
+    else
+    {
+        // メールオプションを設定
+        $MAIL_PARAM = $MAIL_ARG[5];
+    }
+    
+    // メール送信レートテーブルから、対象メッセージの現在時刻 - 対象時間より昔のデータを削除
+    @$TARGET_CONF['mailrate_db']->exec("DELETE FROM mailrate_tbl WHERE registdate < (".(time() - $TARGET_CONF['mailratetime']).")");
+    // メール送信レートテーブルに対象メッセージを登録
+    $RESULT = @$TARGET_CONF['mailrate_db']->exec("INSERT INTO mailrate_tbl VALUES ('".$MAIL_TO."','".$MAIL_TITLE."',".time().")");
+    
+    // もし新しく登録できたら
+    if ($RESULT)
+    {
+        // メール送信
+        $RESULT = mb_send_mail(
+                $MAIL_TO,
+                $MAIL_TITLE,
+                $MAIL_STR,
+                $MAIL_HEADER,
+                $MAIL_PARAM);
+    }
+    else
+    {
+        // メールは送信しない
+    }
+    // 戻る
+    return $RESULT;
+}
+?>
+<?php
+// ----------------------------------------------------------------------
+// Sub Routine
+// ----------------------------------------------------------------------
 function ban4ip_optioncheck($BAN4IPD_CONF, $BAN4IPC_OPTIONS)
 {
     // 現在日時を設定
