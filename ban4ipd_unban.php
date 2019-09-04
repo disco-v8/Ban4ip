@@ -108,7 +108,20 @@ function ban4ip_unban($TARGET_CONF)
         }
     }
     // BANデータベースから対象IPアドレス(とポートとルールが合致するもの)を削除
-    $TARGET_CONF['ban_db']->exec("DELETE FROM ban_tbl WHERE address = '".$TARGET_CONF['target_address']."' AND protcol = '".$TARGET_CONF['target_protcol']."' AND port = '".$TARGET_CONF['target_port']."' AND rule = '".$TARGET_CONF['target_rule']."'");
+    $RESULT = $TARGET_CONF['ban_db']->exec("DELETE FROM ban_tbl WHERE address = '".$TARGET_CONF['target_address']."' AND protcol = '".$TARGET_CONF['target_protcol']."' AND port = '".$TARGET_CONF['target_port']."' AND rule = '".$TARGET_CONF['target_rule']."'");
+    // 削除できなかったら
+    if ($RESULT === FALSE)
+    {
+        $TARGET_CONF['delete_err_count'] += 1;
+        // もし検出回数以上になったら
+        if ($TARGET_CONF['delete_err_count'] >= $TARGET_CONF['maxretry'])
+        {
+            // 強制ダメージリカバリ
+            $TARGET_CONF['damage_recover'] = 1;
+            // データベースファイルをリカバリ
+            ban4ip_dbcheck($TARGET_CONF);
+        }
+    }
     // 戻る
     return $TARGET_CONF;
 }
