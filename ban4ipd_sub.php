@@ -354,7 +354,7 @@ function ban4ip_loop($TARGET_CONF)
                                     // 結果が0なのはおかしい…のでチェックルーチンに飛ぶ
                                     else if ($RESULT_COUNT == 0)
                                     {
-                                        // 親プロセスにログメッセージを送信
+                                        // データベースファイルを検査
                                         ban4ip_dbcheck($TARGET_CONF);
                                     }
                                     // 検出回数未満なら
@@ -464,7 +464,7 @@ function ban4ip_loop($TARGET_CONF)
                                     // 結果が0なのはおかしい…のでチェックルーチンに飛ぶ
                                     else if ($RESULT_COUNT == 0)
                                     {
-                                        // 親プロセスにログメッセージを送信
+                                        // データベースファイルを検査
                                         ban4ip_dbcheck($TARGET_CONF);
                                     }
                                     // 検出回数未満なら
@@ -759,7 +759,7 @@ function ban4ip_dbcheck($TARGET_CONF)
     if (!isset($TARGET_CONF['damage_recover']) || (isset($TARGET_CONF['damage_recover']) && $TARGET_CONF['damage_recover'] == 1))
     {
         // エラーの旨メッセージを設定
-        $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", $TARGET_CONF['logtime'])." ban4ip[".getmypid()."]: WARN [".$TARGET_CONF['target_service']."] Cannot INSERT or SELECT from DB, ".$TARGET_CONF['target_address']." ... RESULT_COUNT ERROR!? DELETE & REBOOT!)"."\n";
+        $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", $TARGET_CONF['logtime'])." ban4ip[".getmypid()."]: WARN [".$TARGET_CONF['target_service']."] Cannot Query the DB, ".$TARGET_CONF['target_address']." ... DB File DELETE & REBOOT!)"."\n";
         // 親プロセスに送信
         ban4ip_sendmsg($TARGET_CONF);
         // カウント用データベースファイルを削除
