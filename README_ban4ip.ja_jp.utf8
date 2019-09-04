@@ -106,17 +106,15 @@ ban4ipc -h
 
 技術メモ:
 
-CentOS6では
-
 "Inotify extension not loaded!?", but PECL inotify installed.
 
-となった場合、
+CentOS6でこうなった場合、
 
 pecl install channel://pecl.php.net/inotify-0.x.x
 
 として、inotifyを入れないといけません。
 
-「extension=inotify.so」を/etc/php.d/inotify.iniなどに記述するのを忘れずに。
+それと「extension=inotify.so」を/etc/php.d/inotify.iniなどに記述するのを忘れずに。
 
 "PHP Fatal error:  Class 'SQLite3' not found in /root/ban4ip/ban4ipd.php on line 330"
 
