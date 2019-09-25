@@ -48,4 +48,5 @@
 ;                           Bug fix. (date-time double print on log file in ban4ip_sendmsg())
 ; Ver.00.30    2018.10.25   Add damage_recover flag (check count.db)
 ; Ver.00.31    2019.09.04   Add damage_recover logic in unban (check count.db)
+; Ver.00.32    2019.09.25   Bug fix. (Cannot damage_recover, ban4ip_dbcheck() -> ban4ip_dbreset())
 ;
