@@ -128,6 +128,22 @@ function log_write($BAN4IPD_CONF)
 // ----------------------------------------------------------------------
 // Sub Routine
 // ----------------------------------------------------------------------
+function ban4ip_dbreset()
+{
+    global $BAN4IPD_CONF;
+    
+    // カウント用データベースファイルを削除
+    unlink($BAN4IPD_CONF['db_dir'].'/ban.db');
+    unlink($BAN4IPD_CONF['db_dir'].'/count.db');
+    unlink($BAN4IPD_CONF['db_dir'].'/mailrate.db');
+    // サービスを再起動する
+    system('/usr/bin/ban4ipc restart');
+}
+?>
+<?php
+// ----------------------------------------------------------------------
+// Sub Routine
+// ----------------------------------------------------------------------
 function ban4ip_dbinit()
 {
     global $BAN4IPD_CONF;
