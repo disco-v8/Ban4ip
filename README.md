@@ -3,7 +3,7 @@
 
 Ban4IP reads log file containing failure report, and ban these IP addresses using iptables.
 
-Ban4IP is supported IPv4 and IPv6 address.
+Ban4IP is supported IPv4 and IPv6 address with NETMASK.
 
 For a long time, everyone has been waiting for this tool? like fail2ban. :-)
 
