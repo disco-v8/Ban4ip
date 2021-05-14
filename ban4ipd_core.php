@@ -497,7 +497,7 @@ do // SIGHUPに対応したループ構造にしている
             // BAN解除対象IPアドレスの取得ができなかったら
             if ($RESULT === FALSE)
             {
-                $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR "." Cannot query!? (".socket_strerror(socket_last_error()).")"."\n";
+                $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR "."Cannot query!? (".socket_strerror(socket_last_error()).")"."\n";
                 // ログに出力する
                 log_write($BAN4IPD_CONF);
             }
