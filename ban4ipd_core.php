@@ -461,7 +461,7 @@ do // SIGHUPに対応したループ構造にしている
                 // 再読み込み要求(reload=1)ではないなら
                 if ($BAN4IPD_CONF['reload'] != 1)
                 {
-                    $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR "." Cannot socket_select!? (".socket_strerror(socket_last_error()).")"."\n";
+                    $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR "."Cannot socket_select!? (".socket_strerror(socket_last_error()).")"."\n";
                     // ログに出力する
                     log_write($BAN4IPD_CONF);
                 }
@@ -484,7 +484,7 @@ do // SIGHUPに対応したループ構造にしている
                 // できなかったら
                 else
                 {
-                    $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR "." Cannot socket_recvfrom!? (".socket_strerror(socket_last_error()).")"."\n";
+                    $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR "."Cannot socket_recvfrom!? (".socket_strerror(socket_last_error()).")"."\n";
                     // ログに出力する
                     log_write($BAN4IPD_CONF);
                 }
