@@ -225,6 +225,7 @@ function ban4ip_close($TARGET_CONF)
 {
     // UNIXソケットが開いていたら
     if (isset($TARGET_CONF['socket']) && is_resource($TARGET_CONF['socket']))
+////    if (isset($TARGET_CONF['socket']) && is_object($TARGET_CONF['socket']))    // PHP8.x
     {
         // UNIXソケットを切断
         socket_close($TARGET_CONF['socket']);
