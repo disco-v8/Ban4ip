@@ -223,9 +223,8 @@ function check_safekeyword($TARGET_CONF)
 // ----------------------------------------------------------------------
 function ban4ip_close($TARGET_CONF)
 {
-    // UNIXソケットが開いていたら
-    if (isset($TARGET_CONF['socket']) && is_resource($TARGET_CONF['socket']))
-////    if (isset($TARGET_CONF['socket']) && is_object($TARGET_CONF['socket']))    // PHP8.x
+    // UNIXソケットが開いていなかったら ※PHP8からはソケットをSocket型としたので、開いているはずのソケットをis_resource()で検査するとfalseとなるため、バージョンにより判定分離
+    if (isset($TARGET_CONF['socket']) && ( (PHP_MAJOR_VERSION >= 8 && is_object($TARGET_CONF['socket'])) || (PHP_MAJOR_VERSION < 8 && is_resource($TARGET_CONF['socket'])) ) )
     {
         // UNIXソケットを切断
         socket_close($TARGET_CONF['socket']);
