@@ -18,9 +18,8 @@ function ban4ip_sendmsg($TARGET_CONF)
 ///    $SEND_MSG = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ".$TARGET_CONF['log_msg'];
     $SEND_MSG = $TARGET_CONF['log_msg'];
     
-    // UNIXソケットが開いていなかったら
-    if (!isset($TARGET_CONF['socket']) || !is_resource($TARGET_CONF['socket']))
-////    if (!isset($TARGET_CONF['socket']) || !is_object($TARGET_CONF['socket']))    // PHP8.x
+    // UNIXソケットが開いていなかったら ※PHP8からはソケットをSocket型としたので、開いているはずのソケットをis_resource()で検査するとfalseとなるため、バージョンにより判定分離
+    if (!isset($TARGET_CONF['socket']) || (PHP_MAJOR_VERSION >= 8 && !is_object($TARGET_CONF['socket'])) || (PHP_MAJOR_VERSION < 8 && !is_resource($TARGET_CONF['socket'])))
     {
         // エラーメッセージに、UNIXソケットが開いていない旨を設定
         print date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: WARN [".$TARGET_CONF['target_service']."] Socket not open!? (".$TARGET_CONF['conf_file'].")"."\n";
