@@ -512,7 +512,7 @@ Usage:
        <IP>         ... IPv4 or IPv6 address. (same LOGs format)
        <SERVICE>    ... set "target_service" name to ban4ipd's log.
 
-T.Kabu/MyDNS.JP     http://www.mydns.jp/
+T.Kabu/MyDNS.JP     https://www.mydns.jp/
 
 
 EOF;
