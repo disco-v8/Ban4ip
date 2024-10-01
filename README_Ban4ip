@@ -1,0 +1,187 @@
+
+<<< BAN for iptables/ip6tables >>>
+
+Ban4ip is a lockout tool that reads log files containing fail information and uses iptables/ip6tables to ban IP addresses that persistently cause failures.
+
+Ban4ip is supported IPv4 and IPv6 address.
+
+Previously, I created a lockout tool called Ban4IP.
+
+For all server admins and IPv4 & IPv6 users. :-)
+
+
+Need Package:
+
+    php
+    php-devel
+    php-pear
+    php-mbstring
+    php-pdo (SQLite3/PostgreSQL/MySQL)
+    php-process
+    php-inotify
+    procps
+
+
+Usage:
+
+Step0. Install (e.g.  CentOS 9 Stream)
+
+dnf -y install php php-devel php-pear php-mbstring php-pdo php-process php-pecl-inotify
+
+wget 'https://github.com/disco-v8/Ban4ip/archive/master.zip' -O Ban4ip-master.zip
+unzip ./package/Ban4ip-master.zip
+
+cd ./Ban4ip-master/
+
+chmod 700 ./ban4ipd
+chmod 700 ./ban4ipc
+chmod 755 ./init.d/ban4ip
+
+mkdir /etc/ban4ip/
+mkdir /var/lib/ban4ip/
+
+cp ./ban4ipd.conf /etc/
+cp ./ban4ip/* /etc/ban4ip/
+
+cp ./ban4ipc /usr/bin/
+cp ./ban4ipd /usr/bin/
+cp ./ban4ipd_*.php /usr/bin/
+
+cp ./logrotate.d/ban4ip /etc/logrotate.d/
+
+/bin/cp ./systemd/ban4ip.service /usr/lib/systemd/system/
+systemctl daemon-reload
+systemctl --no-pager -l status ban4ip
+
+systemctl enable ban4ip
+systemctl --no-pager -l status ban4ip
+
+
+Step1. Edit ban4ipd.conf and Sub-config file.
+
+ban4ipd.conf...
+
+YOU CAN UNDERSTAND CONFIG, IF YOU ARE IN NEED OF THIS TOOL. :-)
+
+Sub-config file...
+-------------------------------
+    :
+    :
+target_service = 'apache-error'            ... only affects log message.
+target_log = '/var/log/httpd/error_log'    ... name of log file.
+target_protcol = 'tcp'                     ... BAN protcol. (tcp, udp, all)
+target_port = 80                           ... BAN port. (nnn or all)
+target_rule = 'DROP'                       ... BAN packet rule. (DROP, REJECT, LOG)
+
+target_str[] = '/error\] \[client (.*)\] client /'        ... (.) is target of BAN.
+    :
+    :
+-------------------------------
+
+"target_str[]" is array parameter. Please write a regular expression..
+
+If you set 'all' to target_protcol and 'target_port', BAN all access from target IP address.
+
+
+Step2. Start ban4ipd
+
+ban4ipc start
+
+If you changed Sub-config file...
+
+ban4ipc reload
+
+Or ban4ipd.conf...
+
+ban4ipc restart
+
+If you want to know BANs IP address...
+
+ban4ipc list
+
+Other option...
+
+ban4ipc -h
+
+
+Step 3. Joining the Information Sharing Server (ISS)
+
+Let's Provide the IP address (or network) that Ban4IP/Ban4nft actually banned to the Information Sharing Server (ISS)!
+
+https://www.ban4nft.net/ (*Prepared as of 2024.09.30)
+
+You will register as a USERID with an email address, a password will be sent to that email address.
+Next, set “iss_flag” to “1” (=YES) in the configuration file and set ISS-related parameters as needed.
+If you BAN some IP address (or Network) one on the server, BAN information is immediately sent to ISS, 
+and BAN information provided by other users is imported every 3 minutes.
+By sharing BAN information with each other, everyone can be more proactive in their defense.
+
+Have a nice sleep! :-)
+
+
+Memo:
+
+"Inotify extension not loaded!?", but PECL inotify installed.
+
+ -> pecl search inotify
+ -> pecl install channel://pecl.php.net/inotify-3.0.0
+ -> And, "extension=inotify.so" write in /etc/php.d/inotify.ini
+
+"PHP Fatal error:  Class 'SQLite3' not found in /root/ban4ip/ban4ipd.php on line 330"
+
+ -> You have to install php-pdo (SQLite3) package.
+ 
+"ban4ipd ... Found other process : /var/run/ban4ip.pid!?"
+
+ -> Illegal termination!? rm /var/run/ban4ip.pid.
+
+"PHP Warning:  SQLite3::exec(): database is locked in ..."
+
+ -> It is so heavy?! extend db_timeout's value in ban4ipd.conf.
+
+"The user limit on the total number of inotify instances has been reached"
+"Failed to obtain an inotify instance!?"
+
+ -> Sorry, You should reduce config file. (= target log).
+
+"When using PostgreSQL/MySQL..."
+
+  count_db
+  ban_db
+  mailrate_db
+
+Create the above three databases. (The tables will be created automatically.)
+Then rewrite “pdo_dsn_???” in ban4ipd.conf as needed to enable the setting.
+If you have multiple servers on which you want to install “Ban4ip,” you can 
+share count_db so that all servers can share fail count information,
+which will allow you to quickly respond to lockouts.
+
+Do not share ban_db and mailrate_db, as they must be handled on a per-server basis.
+
+
+License:
+
+MIT License
+
+Copyright (c) 2024, Future Versatile Group
+All rights reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+T.Kabu/MyDNS.JP

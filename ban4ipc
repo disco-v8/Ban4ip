@@ -2,11 +2,13 @@
 <?php
 // ------------------------------------------------------------
 // 
-// BAN for IP
+// BAN for iptables/ip6tables
 // 
 // T.Kabu/MyDNS.JP           http://www.MyDNS.JP/
 // Future Versatile Group    http://www.fvg-on.net/
 // 
+// ver.1 ... Standalone type lockout service.
+// ver.2 ... Support PostgreSQL & MySQL, and Information Sharing lockout service.
 // ------------------------------------------------------------
 ?>
 <?php
@@ -151,8 +153,9 @@ function ban4ip_mail_send()
 // ----------------------------------------------------------------------
 function ban4ip_optioncheck($BAN4IPD_CONF, $BAN4IPC_OPTIONS)
 {
-    // 現在日時を設定
-    $BAN4IPD_CONF['logtime'] = local_time();
+    // 現在日時(UNIXタイム)を設定
+////    $BAN4IPD_CONF['logtime'] = local_time();
+    $BAN4IPD_CONF['logtime'] = time();
     
     // 必須パラメータ
     // 対象IPアドレス(--address)が設定されているなら
@@ -386,6 +389,10 @@ function ban4ip_banlist($BAN4IPD_CONF)
 // ----------------------------------------------------------------------
 // Main Routine
 // ----------------------------------------------------------------------
+// 2024.09.13 PostgreSQL/MySQLにも対応するために、データベースの初期化をBan4IPとは異なり、_init.php内からこちらに移動
+// データベースの初期化(接続や必要に応じてテーブル生成)を行う
+ban4ip_dbinit();
+
 // --------------------------------
 // コマンドラインオプションを解析(その一)
 // --------------------------------
@@ -459,7 +466,7 @@ switch($argv[1])
         // 終わり
         exit;
     case "reload" :
-        // ban4ipdプロセスをすべてkillする
+        // ban4ipdプロセスをすべてSIGHUPする
         exec('/usr/bin/killall -s SIGHUP ban4ipd');
         print 'ban4ipd reload ... Please check LOG file.'."\n";
         // 終わり
@@ -493,7 +500,7 @@ if (isset($BAN4IPC_OPTIONS['unban']))
 // --------------------------------
 print <<<EOF
 
-BAN for IP controller (ban4ipc)
+BAN for ipables/ip6tables controller (ban4ipc)
 
 Usage:
 

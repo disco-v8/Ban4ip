@@ -1,0 +1,228 @@
+
+<<< BAN for iptables/ip6tables >>>
+
+このソフトは、fail情報が含まれたログファイルを読み込みながら、iptables/ip6tablesでIPアドレスをBANするツールです。
+
+"Ban4ip"はIPv4とIPv6アドレスに対応しています。
+
+その昔、fail2banがIPv6に対応してくれなかったので、作りました。
+
+全てのサーバー管理者とIPv4＆IPv6ユーザーのために。:-)
+
+
+必要なパッケージ:
+
+    php
+    php-devel
+    php-pear
+    php-mbstring
+    php-pdo (SQLite3/PostgreSQL/MySQL)
+    php-process
+    php-inotify
+    procps
+
+
+使い方:
+
+Step0. インストールしてください(例. CentOS 9 Streamの場合)
+
+dnf -y install php php-devel php-pear php-mbstring php-pdo php-process php-pecl-inotify
+
+wget 'https://github.com/disco-v8/Ban4ip/archive/main.zip' -O Ban4ip-main.zip
+unzip ./package/Ban4ip-main.zip
+
+cd ./Ban4ip-main/
+
+chmod 700 ./ban4ipd
+chmod 700 ./ban4ipc
+chmod 755 ./init.d/ban4ip
+
+mkdir /etc/ban4ip/
+mkdir /var/lib/ban4ip/
+
+cp ./ban4ipd.conf /etc/
+cp ./ban4ip/* /etc/ban4ip/
+
+cp ./ban4ipc /usr/bin/
+cp ./ban4ipd /usr/bin/
+cp ./ban4ipd_*.php /usr/bin/
+
+cp ./logrotate.d/ban4ip /etc/logrotate.d/
+
+/bin/cp ./systemd/ban4ip.service /usr/lib/systemd/system/
+systemctl daemon-reload
+systemctl --no-pager -l status ban4ip
+
+systemctl enable ban4ip
+systemctl --no-pager -l status ban4ip
+
+
+Step1. メインの設定ファイル「ban4ipd.conf」とサブ設定ファイル(/etc/ban4ip/*.conf)を設定しましょう
+
+メイン設定ファイル...
+
+このツールを必要としている人なら、設定ファイルを見れば理解できると思います。
+
+サブ設定ファイル...
+-------------------------------
+    :
+    :
+target_service = 'apache-error'            ... ログ出力にのみ関係します(後述)
+target_log = '/var/log/httpd/error_log'    ... 監視対象ログファイル名(フルパスで記述すること)
+target_protcol = tcp                       ... BANするプロトコル(tcp, udp, all)
+target_port = 80                           ... BANするポート(nnn or all)
+target_rule = 'DROP'                       ... BANする際のパケットの扱い(DROP, REJECT, LOG)
+
+target_str[] = '/error\] \[client (.*)\] client /'        ... (.*)はBANするIPアドレスが書いてある場所
+    :
+    :
+-------------------------------
+
+target_str[]は配列変数です。
+
+ここに正規表現でfailの場合のログの文字列と、BAN対象アドレスが書いてある場所を(.*)で指定してください。
+
+target_portとtarget_ruleを'all'にすると、対象IPアドレスからのすべてのアクセスをBANします。
+
+
+Step2. ban4ipdを起動しましよう
+
+ban4ipc start
+
+もしサブ設定ファイルを変更したら
+
+ban4ipc reload
+
+または、メインの設定ファイルを変更したなら
+
+ban4ipc restart
+
+もしBANしているIPアドレスの一覧を見たいなら
+
+ban4ipc list
+
+その他のオプション(手動のBANやUNBAN)については
+
+ban4ipc -h
+
+
+Step3. 情報共有サーバー(ISS)を使ってみませんか？
+
+Ban4IP/Ban4nftが実際にBANしたIPアドレス(もしくはネットワーク)を、情報共有サーバー(ISS)に提供しませんか？
+
+    https://www.ban4nft.net/    (※2024.09.30現在、鋭意準備中)
+
+でメールアドレスでユーザー登録すると、パスワードがそのメールアドレスに送られてきます。
+あとは設定ファイルで「iss_flag」を「1」(情報共有する)と設定するとともに、ISS関連のパラメータを必要に応じて設定してください。
+自分のサーバーでBANしたらすぐにISSにBAN情報を送信、またほかのユーザーが提供してくれたBAN情報を三分毎に取り込みます。
+みんなでBAN情報を相互に共有することで、より積極的な防御をすることになります。
+
+
+それではよい睡眠を。:-)
+
+
+技術メモ:
+
+1) php-pecl-inotifyが見つからない場合、
+
+"Inotify extension not loaded!?", but PECL inotify installed.
+
+となって起動しませんので、
+
+pecl search inotify
+
+としてPECLからinotifyパッケージを探して
+
+pecl install channel://pecl.php.net/inotify-3.0.0
+
+のようにして、inotifyを入れないといけません。
+
+「extension=inotify.so」を/etc/php.d/inotify.iniなどに記述するのを忘れずに。
+
+2) SQLite3を利用する場合
+
+"PHP Fatal error:  Class 'SQLite3' not found in /root/ban4ip/ban4ipd.php on line 330"
+
+php-pdo (SQLite3)をインストールしてください。
+
+3) "ban4ipd ... Found other process : /var/run/ban4ip.pid!?"
+
+前回の起動時に何らかの原因でプロセスが異常終了し、PIDファイルが残ったままです。
+原因を取り除いて「/var/run/ban4ip.pid」を削除してから起動してください。
+
+4) SQLite3の能力が追い付かない場合
+
+"PHP Warning:  SQLite3::exec(): database is locked in ..."
+
+SQLite3のデータベースのロックが他のプロセスでかかったまま一定時間を経過してしまった場合に発生。
+db_timeoutの値を伸ばしてみるといいかも。(デフォルトは500ms…これでも結構長いと思うんだけど)
+
+"The user limit on the total number of inotify instances has been reached"
+"Failed to obtain an inotify instance!?"
+
+申し訳ありませんが、監視対象ログが多すぎるので減らしてください。(つまり、.confを減らす)
+
+5) PostgreSQL/MySQLを使う場合
+
+任意のユーザー名(例:ban4ip)とパスワードで
+
+count_db
+ban_db
+mailrate_db
+
+の三つのデータベースを作成してください。(テーブルは自動的に作られます)
+
+あとは、ban4nftd.confの「pdo_dsn_???」を、必要に応じて書き直して設定を有効にしてください。
+"Ban4nft"を導入したいサーバーが複数ある場合には、count_dbを共有することで、ロックアウト対応が素早くできるでしょう。
+ただし、ban_dbとmailrate_dbは、サーバー毎に扱わないといけないので、共有しないでください。
+
+
+＃以下日本語だけの技術メモ
+
+・Ban4ipは、PHPで記述されていて、プロセスのフォークによりデーモンとして動作します。
+・logrotateによる監視対象ファイルの切り詰めに対応しています。(inotifyでIN_MOVE_SELFを監視)
+・一つのtcpポートに対して複数の設定ファイルを置くことはできますが、iptablesの設定はポート単位となります。
+　(fail2banは、一つの設定ファイルごとにチェインを作る感じだった(確実にそうではない)が、Ban4ipではそこまで求めていない)
+・バージョンアップの際には、以下のPHPスクリプトのみ
+　cp ./ban4ipc /usr/bin/
+　cp ./ban4ipd /usr/bin/
+　cp ./ban4ipd_*.php /usr/bin/
+　コピーして、必要に応じて設定(conf)ファイルを修正すればOK
+・PHPのポリシーによりsystemd配下ではUTCによる処理になっていたので、サーバーのローカルタイム(local_time())を取得する処理を追加した
+・CentOS 9 Streamでテストしていますが、他のディストリビューションでもiptables/ip6tablesパッケージを入れれば動くと思います。
+・CentOS 10 Streamは、カーネルがiptables/ip6tablesに対応していないのでデフォルトのままでは動きません。(ban4nftを使ってください)
+・SQLite3でのジャーナルモードをWALに、同期モードをNORMALにしました。
+・PDO入れているのに何で使わんの？という突っ込みが入ったのでPDOで処理するようにしました。
+・BAN対象のアクセスが多いサーバーで、いつの間にかBAN対象のカウントが止まっている事象が発生。
+　調査してみると、SQLite3への記録が追い付かないためにDBとのアクセスがハングアップしてしまう。
+　それだけではなく、カウント用データベース(count.db)そのものが壊れる事象も確認。
+　このため、BAN対象がカウント出来なくなったらファイルを削除して0から作り直すような処理を追加。
+・情報共有サーバーに対応するため、DBへの記録日時をサーバーのローカルタイム(local_time())からUNIXタイム(time())に変更した。(ログは今まで通りローカルタイム出力)
+
+
+ライセンス: 
+
+MIT License
+
+Copyright (c) 2024, Future Versatile Group
+All rights reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+T.Kabu/MyDNS.JP

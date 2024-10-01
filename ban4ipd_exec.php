@@ -1,7 +1,7 @@
 <?php
 // ------------------------------------------------------------
 // 
-// BAN for IP
+// BAN for iptables/ip6tables
 // 
 // T.Kabu/MyDNS.JP           http://www.MyDNS.JP/
 // Future Versatile Group    http://www.fvg-on.net/

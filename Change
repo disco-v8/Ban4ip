@@ -49,4 +49,6 @@
 ; Ver.00.30    2018.10.25   Add damage_recover flag (check count.db)
 ; Ver.00.31    2019.09.04   Add damage_recover logic in unban (check count.db)
 ; Ver.00.32    2019.09.25   Bug fix. (Cannot damage_recover, ban4ip_dbcheck() -> ban4ip_dbreset())
+; Ver.02.00    2024.10.01 Gamma Version Release. :-) ... PostgreSQL, MySQL supported. and, Information Share Server(ISS) supported.
+;                           Change local_time() to time(). (for ISS)
 ;
