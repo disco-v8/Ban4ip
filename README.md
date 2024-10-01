@@ -9,7 +9,7 @@ For a long time, everyone has been waiting for this tool? like fail2ban. :-)
 
 To all of the administrators and IPv4 and IPv6 users.
 
-Please read "README_ban4ip" or .utf8(Japanese).
+Please read "README_Ban4ip" or .utf8(Japanese).
 
 This is Good Lock Out Tool! :-)
 
