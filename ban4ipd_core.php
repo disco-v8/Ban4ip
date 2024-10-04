@@ -30,6 +30,64 @@ require(__DIR__."/ban4ipd_exec.php");
 // ----------------------------------------------------------------------
 // Sub Routine
 // ----------------------------------------------------------------------
+function get_ipv4_range($IPV4_ADDRESS)
+{
+    // 対象アドレスを分割
+    @list($TARGET_ADDRESS, $TARGET_MASK) = explode("/", $IPV4_ADDRESS);
+    
+    // IPv4アドレスを整数に変換
+    $TARGET_ADDRESS_LONG = ip2long($TARGET_ADDRESS);
+    
+    // プレフィックスに基づいてネットワークアドレスを計算
+    $TARGET_ADDRESS_MASK = -1 << (32 - $TARGET_MASK);
+    $TARGET_NETWORK_LONG = $TARGET_ADDRESS_LONG & $TARGET_ADDRESS_MASK;
+    
+    // ブロードキャストアドレスを計算
+    $TARGET_BROADCAST_LONG = $TARGET_NETWORK_LONG | (~$TARGET_ADDRESS_MASK & 0xFFFFFFFF);
+    
+    // アドレスを戻す
+    $TARGET_NETWORK_ADDRESS = long2ip($TARGET_NETWORK_LONG);
+    $TARGET_BROADCAST_ADDRESS = long2ip($TARGET_BROADCAST_LONG);
+    
+    return [
+        $TARGET_NETWORK_ADDRESS,
+        $TARGET_BROADCAST_ADDRESS,
+    ];
+}
+?>
+<?php
+// ----------------------------------------------------------------------
+// Sub Routine
+// ----------------------------------------------------------------------
+function get_ipv6_range($IPV6_ADDRESS)
+{
+    // 対象アドレスを分割
+    @list($TARGET_ADDRESS, $TARGET_MASK) = explode("/", $IPV6_ADDRESS);
+    
+    // IPv6アドレスをバイナリ形式に変換
+    $TARGET_ADDRESS_BINARY = inet_pton($TARGET_ADDRESS);
+    $TARGET_ADDRESS_BINARY = str_pad($TARGET_ADDRESS_BINARY, 16, "\0"); // 128ビットにパディング
+    
+    // プレフィックスに基づいてネットワークアドレスを計算
+    $TARGET_NETWORK_BINARY = substr($TARGET_ADDRESS_BINARY, 0, $TARGET_MASK / 8) . str_repeat("\0", 16 - ($TARGET_MASK / 8));
+
+    // ブロードキャストアドレス（最大アドレス）を計算
+    $TARGET_BROADCAST_BINARY = substr($TARGET_ADDRESS_BINARY, 0, $TARGET_MASK / 8) . str_repeat("\xff", 16 - ($TARGET_MASK / 8));
+
+    // バイナリ形式から文字列形式に戻す
+    $TARGET_NETWORK_ADDRESS = inet_ntop($TARGET_NETWORK_BINARY);
+    $TARGET_BROADCAST_ADDRESS = inet_ntop($TARGET_BROADCAST_BINARY);
+
+    return [
+        $TARGET_NETWORK_ADDRESS,
+        $TARGET_BROADCAST_ADDRESS,
+    ];
+}
+?>
+<?php
+// ----------------------------------------------------------------------
+// Sub Routine
+// ----------------------------------------------------------------------
 function get_networkaddr($IP_ADDR, $IP_MASK)
 {
     // 対象IPアドレスをバイナリ形式に変換
@@ -50,14 +108,7 @@ function get_networkaddr($IP_ADDR, $IP_MASK)
             // 戻る
             return FALSE;
         }
-        $ADDR['ip_mask'] = $IP_MASK;
-        $ADDR['unpack'] = unpack("n8", $ADDR['pack']);
-        // ビットマスクする単位(IPv4=8, IPv6=16)
-        $ADDR['pack_len'] = 16;
-        // ビットマスク長(IPv4=32, IPv6=128)
-        $ADDR['mask_len'] = 128;
-        // セパレータ(IPv4=., IPv6=:)
-        $ADDR['separator'] = ':';
+        @list($TARGET_NETWORK_ADDRESS, $TARGET_BROADCAST_ADDRESS) = get_ipv6_range($IP_ADDR.'/'.$IP_MASK);
     }
     // 対象IPアドレスがIPv4なら(IPv4だったら文字列そのものが返ってくる)
     else if (filter_var($IP_ADDR, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== FALSE)
@@ -68,14 +119,7 @@ function get_networkaddr($IP_ADDR, $IP_MASK)
             // 戻る
             return FALSE;
         }
-        $ADDR['ip_mask'] = $IP_MASK;
-        $ADDR['unpack'] = unpack("C4", $ADDR['pack']);
-        // ビットマスクする単位(IPv4=8, IPv6=16)
-        $ADDR['pack_len'] = 8;
-        // ビットマスク長(IPv4=32, IPv6=128)
-        $ADDR['mask_len'] = 32;
-        // セパレータ(IPv4=., IPv6=:)
-        $ADDR['separator'] = '.';
+        @list($TARGET_NETWORK_ADDRESS, $TARGET_BROADCAST_ADDRESS) = get_ipv4_range($IP_ADDR.'/'.$IP_MASK);
     }
     else
     {
@@ -83,55 +127,8 @@ function get_networkaddr($IP_ADDR, $IP_MASK)
         return FALSE;
     }
     
-    // マスク対象カウント初期化
-    $pack_num = 1;
-    // マスクの残ビットにビットマスク長を設定、残ビットが0よりあるならループ継続、継続する場合には残ビットからマスク単位を引く
-    for ($MASK = $ADDR['mask_len']; $MASK > 0; $MASK -= $ADDR['pack_len'])
-    {
-        // 残ビットがマスク単位より大きいなら
-        if ($ADDR['ip_mask'] > $ADDR['pack_len'])
-        {
-            // マスク
-            $ADDR['unpack'][$pack_num] &= (pow(2, $ADDR['pack_len']) - 1);
-            // 残ビットからマスク単位を引く
-            $ADDR['ip_mask'] -= $ADDR['pack_len'];
-        }
-        // 残ビットがマスク単位と同じか小さいなら
-        else
-        {
-            // マスク
-            $ADDR['unpack'][$pack_num] &= ((pow(2, $ADDR['pack_len']) -1) ^ (pow(2, $ADDR['pack_len'] - $ADDR['ip_mask']) -1));
-            // 残ビットを0にする
-            $ADDR['ip_mask'] = 0;
-        }
-        // マスク対象カウント加算
-        $pack_num ++;
-    }
-    
-    $NETWORK_ADDR = "";
-    // 対象IPアドレスがIPv6なら(IPv6だったら文字列そのものが返ってくる)
-    if (filter_var($IP_ADDR, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== FALSE)
-    {
-        foreach ($ADDR['unpack'] as $IP_D)
-        {
-            $NETWORK_ADDR .= dechex($IP_D).$ADDR['separator'];
-        }
-    }
-    // 対象IPアドレスがIPv4なら(IPv4だったら文字列そのものが返ってくる)
-    else if (filter_var($IP_ADDR, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== FALSE)
-    {
-        foreach ($ADDR['unpack'] as $IP_D)
-        {
-            $NETWORK_ADDR .= $IP_D.$ADDR['separator'];
-        }
-    }
-    // 最後のseparatorを取り除く
-    $NETWORK_ADDR = rtrim($NETWORK_ADDR, $ADDR['separator']);
-    // 対象IPアドレスを省略形にして、ネットマスクをつける(ip6tables対策)
-    $NETWORK_ADDR = inet_ntop(inet_pton($NETWORK_ADDR)).'/'.$IP_MASK;
-    
-    // ネットワークアドレスを返して戻る
-    return $NETWORK_ADDR;
+    // ネットワークアドレスと連結して返す
+    return $TARGET_NETWORK_ADDRESS.'/'.$IP_MASK;
 }
 ?>
 <?php
@@ -147,55 +144,141 @@ function check_safeaddr($TARGET_CONF)
         return FALSE;
     }
     
+    // まずはホワイトリストのネットワークアドレスとブロードキャストアドレスを取得
+    // ホワイトアドレスがネットワーク型ではないなら、両方とも同じアドレスにする
+    
+    // 続いて対象IPアドレスについても同様に取得 
+    // 最終的にすべてが合致するかでホワイトかどうか(TRUE/FALSE)を判断
+    
+    // 対象IPアドレスを/で分割して配列に設定
+    @list($TARGET_ADDRESS, $TARGET_MASK) = explode("/", $TARGET_CONF['target_address']);
+    
     // 対象IPアドレスがホワイトリストの中にあるかどうか確認
     foreach ($TARGET_CONF['safe_address'] as $SAFE_ADDRESS)
     {
-        // 対象アドレスを設定
-        $TARGET_ADDRESS = $TARGET_CONF['target_address'];
         // ホワイトIPアドレスを/で分割して配列に設定
-        $SAFE_ADDRESS = explode("/", $SAFE_ADDRESS);
-        // 対象IPアドレスもホワイトIPアドレスもIPv6なら(IPv6だったら文字列そのものが返ってくる)
-        if ((filter_var($TARGET_CONF['target_address'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== FALSE) &&
-            (filter_var($SAFE_ADDRESS[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== FALSE))
+        @list($SAFE_ADDRESS, $SAFE_MASK) = explode("/", $SAFE_ADDRESS);
+        
+        // ホワイトIPアドレスがIPv6なら(IP6だったら文字列そのものが返ってくる)
+        if (filter_var($SAFE_ADDRESS, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== FALSE)
         {
-            // ホワイトIPアドレスがネットワークアドレス指定なら、
-            if (isset($SAFE_ADDRESS[1]) && ($SAFE_ADDRESS[1] >= 0 && $SAFE_ADDRESS[1] < 128))
+            // ホワイトIPアドレスがネットワークアドレス指定なら
+            if (isset($SAFE_MASK) && ($SAFE_MASK >= 0 && $SAFE_MASK <= 128))
             {
-                // 対象IPアドレスとホワイトIPアドレスのネットワークアドレスを取得
-                $TARGET_ADDRESS = get_networkaddr($TARGET_CONF['target_address'], $SAFE_ADDRESS[1]);
-                $SAFE_ADDRESS = get_networkaddr($SAFE_ADDRESS[0], $SAFE_ADDRESS[1]);
+                // ホワイトIPアドレスのネットワークアドレスとブロードキャストアドレスを取得
+                @list($SAFE_NETWORK_ADDRESS, $SAFE_BROADCAST_ADDRESS) = get_ipv6_range($SAFE_ADDRESS.'/'.$SAFE_MASK);
+                
+                // 対象IPアドレスもIPv6アドレスなら(IPv6だったら文字列そのものが返ってくる)
+                if (filter_var($TARGET_ADDRESS, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== FALSE)
+                {
+                    // 対象IPアドレスがネットワークアドレス指定なら
+                    if (isset($TARGET_MASK) && ($TARGET_MASK >= 0 && $TARGET_MASK <= 128))
+                    {
+                        // 対象IPアドレスをホワイトリストのネットマスクでネットワークアドレスとブロードキャストアドレスを取得
+                        @list($TARGET_NETWORK_ADDRESS, $TARGET_BROADCAST_ADDRESS) = get_ipv6_range($TARGET_ADDRESS.'/'.$SAFE_MASK);
+                    }
+                    // 対象IPアドレスが単独アドレスなら
+                    else
+                    {
+                        // 対象IPアドレスをホワイトリストのネットマスクでネットワークアドレスとブロードキャストアドレスを取得
+                        @list($TARGET_NETWORK_ADDRESS, $TARGET_BROADCAST_ADDRESS) = get_ipv6_range($TARGET_ADDRESS.'/'.$SAFE_MASK);
+                    }
+                    // 対象IPアドレスとホワイトIPアドレスが等しいなら
+                    if ($TARGET_NETWORK_ADDRESS === $SAFE_NETWORK_ADDRESS && $TARGET_BROADCAST_ADDRESS === $SAFE_BROADCAST_ADDRESS)
+                    {
+                        // 戻る(対象IPアドレスはホワイトリストに含まれている)
+                        return TRUE;
+                    }
+                }
             }
-            // でなければ、そのまま比較対象とする
+            // ホワイトIPアドレスが単独アドレスなら
             else
             {
-                $SAFE_ADDRESS = $SAFE_ADDRESS[0];
+                // ホワイトIPアドレスのネットワークアドレスとブロードキャストアドレスを同一として設定
+                $SAFE_NETWORK_ADDRESS = $SAFE_ADDRESS;
+                $SAFE_BROADCAST_ADDRESS = $SAFE_ADDRESS;
+            }
+            // 対象IPアドレスもIPv6アドレスなら(IPv6だったら文字列そのものが返ってくる)
+            if (filter_var($TARGET_ADDRESS, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== FALSE)
+            {
+                // 対象IPアドレスがネットワークアドレス指定なら
+                if (isset($TARGET_MASK) && ($TARGET_MASK >= 0 && $TARGET_MASK <= 128))
+                {
+                }
+                // 対象IPアドレスも単独アドレスなら
+                else
+                {
+                    // 対象IPアドレスとホワイトIPアドレスが等しいなら
+                    if ($TARGET_ADDRESS === $SAFE_ADDRESS)
+                    {
+                        // 戻る(対象IPアドレスはホワイトリストに含まれている)
+                        return TRUE;
+                    }
+                }
             }
         }
-        // 対象IPアドレスもホワイトIPアドレスもIPv4なら(IPv4だったら文字列そのものが返ってくる)
-        else if ((filter_var($TARGET_CONF['target_address'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== FALSE) &&
-                 (filter_var($SAFE_ADDRESS[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== FALSE))
+         
+        // ホワイトIPアドレスがIPv4なら(IP4だったら文字列そのものが返ってくる)
+        if (filter_var($SAFE_ADDRESS, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== FALSE)
         {
-            // ホワイトIPアドレスがネットワークアドレス指定なら、
-            if (isset($SAFE_ADDRESS[1]) && ($SAFE_ADDRESS[1] >= 0 && $SAFE_ADDRESS[1] < 32))
+            // ホワイトIPアドレスがネットワークアドレス指定なら
+            if (isset($SAFE_MASK) && ($SAFE_MASK >= 0 && $SAFE_MASK <= 32))
             {
-                // 対象IPアドレスとホワイトIPアドレスのネットワークアドレスを取得
-                $TARGET_ADDRESS = get_networkaddr($TARGET_CONF['target_address'], $SAFE_ADDRESS[1]);
-                $SAFE_ADDRESS = get_networkaddr($SAFE_ADDRESS[0], $SAFE_ADDRESS[1]);
+                // ホワイトIPアドレスのネットワークアドレスとブロードキャストアドレスを取得
+                @list($SAFE_NETWORK_ADDRESS, $SAFE_BROADCAST_ADDRESS) = get_ipv4_range($SAFE_ADDRESS.'/'.$SAFE_MASK);
+                
+                // 対象IPアドレスもIPv4アドレスなら(IPv4だったら文字列そのものが返ってくる)
+                if (filter_var($TARGET_ADDRESS, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== FALSE)
+                {
+                    // 対象IPアドレスがネットワークアドレス指定なら
+                    if (isset($TARGET_MASK) && ($TARGET_MASK >= 0 && $TARGET_MASK <= 32))
+                    {
+                        // 対象IPアドレスをホワイトリストのネットマスクでネットワークアドレスとブロードキャストアドレスを取得
+                        @list($TARGET_NETWORK_ADDRESS, $TARGET_BROADCAST_ADDRESS) = get_ipv4_range($TARGET_ADDRESS.'/'.$SAFE_MASK);
+                    }
+                    // 対象IPアドレスが単独アドレスなら
+                    else
+                    {
+                        // 対象IPアドレスをホワイトリストのネットマスクでネットワークアドレスとブロードキャストアドレスを取得
+                        @list($TARGET_NETWORK_ADDRESS, $TARGET_BROADCAST_ADDRESS) = get_ipv4_range($TARGET_ADDRESS.'/'.$SAFE_MASK);
+                    }
+                    
+                    // 対象IPアドレスとホワイトIPアドレスが等しいなら
+                    if ($TARGET_NETWORK_ADDRESS === $SAFE_NETWORK_ADDRESS && $TARGET_BROADCAST_ADDRESS === $SAFE_BROADCAST_ADDRESS)
+                    {
+                        // 戻る(対象IPアドレスはホワイトリストに含まれている)
+                        return TRUE;
+                    }
+                }
             }
-            // でなければ、そのまま比較対象とする
+            // ホワイトIPアドレスが単独アドレスなら
             else
             {
-                $SAFE_ADDRESS = $SAFE_ADDRESS[0];
+                // ホワイトIPアドレスのネットワークアドレスとブロードキャストアドレスを同一として設定
+                $SAFE_NETWORK_ADDRESS = $SAFE_ADDRESS;
+                $SAFE_BROADCAST_ADDRESS = $SAFE_ADDRESS;
             }
-        }
-        // 対象IPアドレスとホワイトIPアドレスが等しいなら
-        if ($TARGET_ADDRESS === $SAFE_ADDRESS)
-        {
-            // 戻る(対象IPアドレスはホワイトリストに含まれている)
-            return TRUE;
+            // 対象IPアドレスもIPv4アドレスなら(IPv4だったら文字列そのものが返ってくる)
+            if (filter_var($TARGET_ADDRESS, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== FALSE)
+            {
+                // 対象IPアドレスがネットワークアドレス指定なら
+                if (isset($TARGET_MASK) && ($TARGET_MASK >= 0 && $TARGET_MASK <= 32))
+                {
+                }
+                // 対象IPアドレスも単独アドレスなら
+                else
+                {
+                    // 対象IPアドレスとホワイトIPアドレスが等しいなら
+                    if ($TARGET_ADDRESS === $SAFE_ADDRESS)
+                    {
+                        // 戻る(対象IPアドレスはホワイトリストに含まれている)
+                        return TRUE;
+                    }
+                }
+            }
         }
     }
-    // 戻る(対象IPアドレスはホワイトリストに含まれていない)
+    // 戻る(上記以外は対象IPアドレスはホワイトリストに含まれてない)
     return FALSE;
 }
 ?>
