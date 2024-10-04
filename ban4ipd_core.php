@@ -30,13 +30,216 @@ require(__DIR__."/ban4ipd_exec.php");
 // ----------------------------------------------------------------------
 // Sub Routine
 // ----------------------------------------------------------------------
-function issbanlistget($TARGET_INFO)
+function get_networkaddr($IP_ADDR, $IP_MASK)
+{
+    // 対象IPアドレスをバイナリ形式に変換
+    $ADDR['pack'] = inet_pton($IP_ADDR);
+    // バイナリ形式に変換できなかったら
+    if ($ADDR['pack'] == FALSE)
+    {
+        // 戻る
+        return FALSE;
+    }
+    
+    // 対象IPアドレスがIPv6なら(IPv6だったら文字列そのものが返ってくる)
+    if (filter_var($IP_ADDR, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== FALSE)
+    {
+        // IPv6なのに、マスク値が0～128でなかったら
+        if ($IP_MASK < 0 || $IP_MASK > 128)
+        {
+            // 戻る
+            return FALSE;
+        }
+        $ADDR['ip_mask'] = $IP_MASK;
+        $ADDR['unpack'] = unpack("n8", $ADDR['pack']);
+        // ビットマスクする単位(IPv4=8, IPv6=16)
+        $ADDR['pack_len'] = 16;
+        // ビットマスク長(IPv4=32, IPv6=128)
+        $ADDR['mask_len'] = 128;
+        // セパレータ(IPv4=., IPv6=:)
+        $ADDR['separator'] = ':';
+    }
+    // 対象IPアドレスがIPv4なら(IPv4だったら文字列そのものが返ってくる)
+    else if (filter_var($IP_ADDR, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== FALSE)
+    {
+        // IPv6なのに、マスク値が0～32でなかったら
+        if ($IP_MASK < 0 || $IP_MASK > 32)
+        {
+            // 戻る
+            return FALSE;
+        }
+        $ADDR['ip_mask'] = $IP_MASK;
+        $ADDR['unpack'] = unpack("C4", $ADDR['pack']);
+        // ビットマスクする単位(IPv4=8, IPv6=16)
+        $ADDR['pack_len'] = 8;
+        // ビットマスク長(IPv4=32, IPv6=128)
+        $ADDR['mask_len'] = 32;
+        // セパレータ(IPv4=., IPv6=:)
+        $ADDR['separator'] = '.';
+    }
+    else
+    {
+        // 戻る
+        return FALSE;
+    }
+    
+    // マスク対象カウント初期化
+    $pack_num = 1;
+    // マスクの残ビットにビットマスク長を設定、残ビットが0よりあるならループ継続、継続する場合には残ビットからマスク単位を引く
+    for ($MASK = $ADDR['mask_len']; $MASK > 0; $MASK -= $ADDR['pack_len'])
+    {
+        // 残ビットがマスク単位より大きいなら
+        if ($ADDR['ip_mask'] > $ADDR['pack_len'])
+        {
+            // マスク
+            $ADDR['unpack'][$pack_num] &= (pow(2, $ADDR['pack_len']) - 1);
+            // 残ビットからマスク単位を引く
+            $ADDR['ip_mask'] -= $ADDR['pack_len'];
+        }
+        // 残ビットがマスク単位と同じか小さいなら
+        else
+        {
+            // マスク
+            $ADDR['unpack'][$pack_num] &= ((pow(2, $ADDR['pack_len']) -1) ^ (pow(2, $ADDR['pack_len'] - $ADDR['ip_mask']) -1));
+            // 残ビットを0にする
+            $ADDR['ip_mask'] = 0;
+        }
+        // マスク対象カウント加算
+        $pack_num ++;
+    }
+    
+    $NETWORK_ADDR = "";
+    // 対象IPアドレスがIPv6なら(IPv6だったら文字列そのものが返ってくる)
+    if (filter_var($IP_ADDR, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== FALSE)
+    {
+        foreach ($ADDR['unpack'] as $IP_D)
+        {
+            $NETWORK_ADDR .= dechex($IP_D).$ADDR['separator'];
+        }
+    }
+    // 対象IPアドレスがIPv4なら(IPv4だったら文字列そのものが返ってくる)
+    else if (filter_var($IP_ADDR, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== FALSE)
+    {
+        foreach ($ADDR['unpack'] as $IP_D)
+        {
+            $NETWORK_ADDR .= $IP_D.$ADDR['separator'];
+        }
+    }
+    // 最後のseparatorを取り除く
+    $NETWORK_ADDR = rtrim($NETWORK_ADDR, $ADDR['separator']);
+    // 対象IPアドレスを省略形にして、ネットマスクをつける(ip6tables対策)
+    $NETWORK_ADDR = inet_ntop(inet_pton($NETWORK_ADDR)).'/'.$IP_MASK;
+    
+    // ネットワークアドレスを返して戻る
+    return $NETWORK_ADDR;
+}
+?>
+<?php
+// ----------------------------------------------------------------------
+// Sub Routine
+// ----------------------------------------------------------------------
+function check_safeaddr($TARGET_CONF)
+{
+    // ホワイトリスト設定がないなら
+    if (!isset($TARGET_CONF['safe_address']) || !is_array($TARGET_CONF['safe_address']))
+    {
+        // 戻る(対象IPアドレスはホワイトリストに含まれていない)
+        return FALSE;
+    }
+    
+    // 対象IPアドレスがホワイトリストの中にあるかどうか確認
+    foreach ($TARGET_CONF['safe_address'] as $SAFE_ADDRESS)
+    {
+        // 対象アドレスを設定
+        $TARGET_ADDRESS = $TARGET_CONF['target_address'];
+        // ホワイトIPアドレスを/で分割して配列に設定
+        $SAFE_ADDRESS = explode("/", $SAFE_ADDRESS);
+        // 対象IPアドレスもホワイトIPアドレスもIPv6なら(IPv6だったら文字列そのものが返ってくる)
+        if ((filter_var($TARGET_CONF['target_address'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== FALSE) &&
+            (filter_var($SAFE_ADDRESS[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== FALSE))
+        {
+            // ホワイトIPアドレスがネットワークアドレス指定なら、
+            if (isset($SAFE_ADDRESS[1]) && ($SAFE_ADDRESS[1] >= 0 && $SAFE_ADDRESS[1] < 128))
+            {
+                // 対象IPアドレスとホワイトIPアドレスのネットワークアドレスを取得
+                $TARGET_ADDRESS = get_networkaddr($TARGET_CONF['target_address'], $SAFE_ADDRESS[1]);
+                $SAFE_ADDRESS = get_networkaddr($SAFE_ADDRESS[0], $SAFE_ADDRESS[1]);
+            }
+            // でなければ、そのまま比較対象とする
+            else
+            {
+                $SAFE_ADDRESS = $SAFE_ADDRESS[0];
+            }
+        }
+        // 対象IPアドレスもホワイトIPアドレスもIPv4なら(IPv4だったら文字列そのものが返ってくる)
+        else if ((filter_var($TARGET_CONF['target_address'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== FALSE) &&
+                 (filter_var($SAFE_ADDRESS[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== FALSE))
+        {
+            // ホワイトIPアドレスがネットワークアドレス指定なら、
+            if (isset($SAFE_ADDRESS[1]) && ($SAFE_ADDRESS[1] >= 0 && $SAFE_ADDRESS[1] < 32))
+            {
+                // 対象IPアドレスとホワイトIPアドレスのネットワークアドレスを取得
+                $TARGET_ADDRESS = get_networkaddr($TARGET_CONF['target_address'], $SAFE_ADDRESS[1]);
+                $SAFE_ADDRESS = get_networkaddr($SAFE_ADDRESS[0], $SAFE_ADDRESS[1]);
+            }
+            // でなければ、そのまま比較対象とする
+            else
+            {
+                $SAFE_ADDRESS = $SAFE_ADDRESS[0];
+            }
+        }
+        // 対象IPアドレスとホワイトIPアドレスが等しいなら
+        if ($TARGET_ADDRESS === $SAFE_ADDRESS)
+        {
+            // 戻る(対象IPアドレスはホワイトリストに含まれている)
+            return TRUE;
+        }
+    }
+    // 戻る(対象IPアドレスはホワイトリストに含まれていない)
+    return FALSE;
+}
+?>
+<?php
+// ----------------------------------------------------------------------
+// Sub Routine
+// ----------------------------------------------------------------------
+function check_safekeyword($TARGET_CONF)
+{
+    // ホワイトリスト設定がないなら
+    if (!isset($TARGET_CONF['safe_keyword']) || !is_array($TARGET_CONF['safe_keyword']))
+    {
+        // 戻る(対象キーワードはホワイトリストに含まれていない)
+        return FALSE;
+    }
+    
+    // 対象キーワードがホワイトリストの中にあるかどうか確認
+    foreach ($TARGET_CONF['safe_keyword'] as $SAFE_ADDRESS)
+    {
+        // 対象キーワードを設定
+        $TARGET_ADDRESS = $TARGET_CONF['target_keyword'];
+        
+        // 対象キーワードとホワイトキーワードが等しいなら
+        if ($TARGET_ADDRESS === $SAFE_ADDRESS)
+        {
+            // 戻る(対象キーワードはホワイトリストに含まれている)
+            return TRUE;
+        }
+    }
+    // 戻る(対象キーワードはホワイトリストに含まれていない)
+    return FALSE;
+}
+?>
+<?php
+// ----------------------------------------------------------------------
+// Sub Routine
+// ----------------------------------------------------------------------
+function issbanlistget($TARGET_CONF)
 {
     // 情報共有サーバーのBANデータベースからBAN情報を取ってくるための変数を設定
     $ISS_INFO = array(
-        "iss_get_time" => $TARGET_INFO['iss_get_time'],
-        "iss_get_limit" => $TARGET_INFO['iss_get_limit'],
-        "iss_get_myreport" => $TARGET_INFO['iss_get_myreport']
+        "iss_get_time" => $TARGET_CONF['iss_get_time'],
+        "iss_get_limit" => $TARGET_CONF['iss_get_limit'],
+        "iss_get_myreport" => $TARGET_CONF['iss_get_myreport']
         );
     
     // JSON形式に変換
@@ -56,14 +259,14 @@ function issbanlistget($TARGET_INFO)
     $ISS_CONTEXT = stream_context_create($ISS_OPTION);
     
     // POST送信
-    $ISS_RESULT = @file_get_contents('https://'.$TARGET_INFO['iss_username'].':'.$TARGET_INFO['iss_password'].'@'.$TARGET_INFO['iss_server'].'/banget.html', false, $ISS_CONTEXT);
+    $ISS_RESULT = @file_get_contents('https://'.$TARGET_CONF['iss_username'].':'.$TARGET_CONF['iss_password'].'@'.$TARGET_CONF['iss_server'].'/banget.html', false, $ISS_CONTEXT);
     
     // POST出来なかったら
     if ($ISS_RESULT === false)
     {
-        $TARGET_INFO['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR [iss-list] "."Cannot get Ban List!? "."\n";
+        $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR [iss-list] "."Cannot get Ban List!? "."\n";
         // ログに出力する
-        log_write($TARGET_INFO);
+        log_write($TARGET_CONF);
     }
     // BAN情報一覧の取得ができたら
     else
@@ -71,16 +274,16 @@ function issbanlistget($TARGET_INFO)
         // BAN情報が必要最低限長(75文字)もなかったら
         if (strlen($ISS_RESULT) < 72)
         {
-            $TARGET_INFO['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: INFO [iss-list] "."None new Ban List"."\n";
+            $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: INFO [iss-list] "."None new Ban List"."\n";
             // ログに出力する
-            log_write($TARGET_INFO);
+            log_write($TARGET_CONF);
         }
         // JSON エンコードされたBAN情報一覧をPHPの変数に変換、出来なかったら
         else if (($ISS_BAN_LIST = json_decode($ISS_RESULT, TRUE)) == NULL)
         {
-            $TARGET_INFO['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR [iss-list] "."Cannot decode Ban List!? ".$ISS_RESULT."\n";
+            $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ERROR [iss-list] "."Cannot decode Ban List!? ".$ISS_RESULT."\n";
             // ログに出力する
-            log_write($TARGET_INFO);
+            log_write($TARGET_CONF);
         }
         // BAN情報一覧をPHPの変数に変換出来たら
         else
@@ -89,16 +292,61 @@ function issbanlistget($TARGET_INFO)
             foreach ($ISS_BAN_LIST as $ISS_BAN_INFO)
             {
                 // BANする(UNIXタイム)
-                $TARGET_INFO['target_address'] = $ISS_BAN_INFO['address'];
-                $TARGET_INFO['target_service'] = $ISS_BAN_INFO['service'];
-                $TARGET_INFO['target_protcol'] = $ISS_BAN_INFO['protcol'];
-                $TARGET_INFO['target_port'] = $ISS_BAN_INFO['port'];
-                $TARGET_INFO['target_rule'] = $ISS_BAN_INFO['rule'];
-////                $TARGET_INFO['logtime'] = local_time();
-                $TARGET_INFO['logtime'] = time();
-                $TARGET_INFO = ban4ip_ban($TARGET_INFO);
+                $TARGET_CONF['target_address'] = $ISS_BAN_INFO['address'];
+                $TARGET_CONF['target_service'] = $ISS_BAN_INFO['service'];
+                $TARGET_CONF['target_protcol'] = $ISS_BAN_INFO['protcol'];
+                $TARGET_CONF['target_port'] = $ISS_BAN_INFO['port'];
+                $TARGET_CONF['target_rule'] = $ISS_BAN_INFO['rule'];
+////                $TARGET_CONF['logtime'] = local_time();
+                $TARGET_CONF['logtime'] = time();
+                
+                // 対象IPアドレスがホワイトリストの中にあるかどうか確認
+                if (check_safeaddr($TARGET_CONF) == TRUE)
+                {
+                    // ホワイトリストである旨のメッセージを設定
+                    $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", $TARGET_CONF['logtime'])." ban4nft[".getmypid()."]: INFO [".$TARGET_CONF['target_service']."] Safe ".$TARGET_CONF['target_address']."\n";
+                    // ログに出力する
+                    log_write($TARGET_CONF);
+                    // 次の対象文字列検査へ
+                    continue;
+                }
+                
+                // 対象IPアドレスがIPv6なら(IPv6だったら文字列そのものが返ってくる)
+                if (filter_var($TARGET_CONF['target_address'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== FALSE)
+                {
+                    // IPv6マスク値が設定されていて、/128以外(0～127)なら
+                    if (isset($TARGET_CONF['ipv6_netmask']) && ($TARGET_CONF['ipv6_netmask'] >= 0 && $TARGET_CONF['ipv6_netmask'] < 128))
+                    {
+                        // 対象IPアドレスにマスク値を追加したアドレス表記を、対象ネットワークアドレスとする
+                        $TARGET_ADDRESS = get_networkaddr($TARGET_CONF['target_address'], $TARGET_CONF['ipv6_netmask']);
+                        // 対象ネットワークアドレスが正常に取得できたなら
+                        if ($TARGET_ADDRESS != FALSE)
+                        {
+                            // 対象ネットワークアドレスを対象IPアドレスとして設定
+                            $TARGET_CONF['target_address'] = $TARGET_ADDRESS;
+                        }
+                    }
+                }
+                // 対象IPアドレスがIPv4なら(IPv4だったら文字列そのものが返ってくる)
+                else if (filter_var($TARGET_CONF['target_address'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== FALSE)
+                {
+                    // IPv4マスク値が設定されていて、/32以外(0～31)なら
+                    if (isset($TARGET_CONF['ipv4_netmask']) && ($TARGET_CONF['ipv4_netmask'] >= 0 && $TARGET_CONF['ipv4_netmask'] < 32))
+                    {
+                        // 対象IPアドレスにマスク値を追加したアドレス表記を、対象ネットワークアドレスとする
+                        $TARGET_ADDRESS = get_networkaddr($TARGET_CONF['target_address'], $TARGET_CONF['ipv4_netmask']);
+                        // 対象ネットワークアドレスが正常に取得できたなら
+                        if ($TARGET_ADDRESS != FALSE)
+                        {
+                            // 対象ネットワークアドレスを対象IPアドレスとして設定
+                            $TARGET_CONF['target_address'] = $TARGET_ADDRESS;
+                        }
+                    }
+                }
+                
+                $TARGET_CONF = ban4ip_ban($TARGET_CONF);
                 // ログに出力する
-                log_write($TARGET_INFO);
+                log_write($TARGET_CONF);
             }
         }
     }
