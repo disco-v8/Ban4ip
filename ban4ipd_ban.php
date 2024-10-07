@@ -139,7 +139,7 @@ function ban4ip_ban($TARGET_CONF)
     if (isset($TARGET_CONF['iss_flag']) && $TARGET_CONF['iss_flag'] == 1 && $TARGET_CONF['target_service'] == 'iss-list')
     {
         // メッセージを設定
-        $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", $TARGET_CONF['logtime'])." ban4ip[".getmypid()."]: NOTICE [".$TARGET_CONF['target_service']."] Ban ".$TARGET_CONF['target_address']." (This is ISS BAN Data) ";
+        $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", $TARGET_CONF['logtime'])." ban4ip[".getmypid()."]: NOTICE [".$TARGET_CONF['target_service']."] Ban ".$TARGET_CONF['target_address']." (This is ISS BAN Data, ".$TARGET_CONF['target_protcol']."/".$TARGET_CONF['target_port'].") ";
     }
     // 通常の監視によるBANなら
     else
