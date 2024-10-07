@@ -212,6 +212,8 @@ function ban4ip_loop($TARGET_CONF)
                                     // 対象IPアドレスがIPv6なら(IPv6だったら文字列そのものが返ってくる)
                                     if (filter_var($TARGET_CONF['target_address'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== FALSE)
                                     {
+                                        // 対象の本来のアドレスを設定
+                                        $TARGET_CONF['target_originaladdress'] = $TARGET_CONF['target_address'];
                                         // IPv6マスク値が設定されていて、/128以外(0～127)なら
                                         if (isset($TARGET_CONF['ipv6_netmask']) && ($TARGET_CONF['ipv6_netmask'] >= 0 && $TARGET_CONF['ipv6_netmask'] < 128))
                                         {
@@ -228,6 +230,8 @@ function ban4ip_loop($TARGET_CONF)
                                     // 対象IPアドレスがIPv4なら(IPv4だったら文字列そのものが返ってくる)
                                     else if (filter_var($TARGET_CONF['target_address'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== FALSE)
                                     {
+                                        // 対象の本来のアドレスを設定
+                                        $TARGET_CONF['target_originaladdress'] = $TARGET_CONF['target_address'];
                                         // IPv4マスク値が設定されていて、/32以外(0～31)なら
                                         if (isset($TARGET_CONF['ipv4_netmask']) && ($TARGET_CONF['ipv4_netmask'] >= 0 && $TARGET_CONF['ipv4_netmask'] < 32))
                                         {

@@ -286,9 +286,10 @@ function ban4ip_ban($TARGET_CONF)
         // -----------------------------
         if (isset($TARGET_CONF['iss_flag']) && $TARGET_CONF['iss_flag'] == 1 && $TARGET_CONF['target_service'] != 'iss-list')
         {
-            // 情報共有サーバーのBANデータベースに、BAN情報をアップ
+            // 情報共有サーバーのBANデータベースに、BAN情報として対象の本来のアドレスをアップ
             $ISS_INFO = array(
-                "target_address" => $TARGET_CONF['target_address'],
+////                "target_address" => $TARGET_CONF['target_address'],
+                "target_address" => $TARGET_CONF['target_originaladdress'],
                 "target_protcol" => $TARGET_CONF['target_protcol'],
                 "target_port" => $TARGET_CONF['target_port'],
                 "target_rule" => $TARGET_CONF['target_rule'],
