@@ -773,6 +773,12 @@ system($BAN4IPD_CONF['ip6tables'].' -I INPUT -j ban4ip');
 // ----------------------------------------------------------------------
 do // SIGHUPに対応したループ構造にしている
 {
+    // Init DataBase
+    // 2024.09.13 PostgreSQL/MySQLにも対応するために、データベースの初期化をBan4IPとは異なり、_init.php内からこちらに移動
+    // 2024.10.09 ログへの書き出しを考慮してここに移動
+    // データベースの初期化(接続や必要に応じてテーブル生成)を行う
+    ban4ip_dbinit();
+    
     // 再読み込み要求を初期化
     $BAN4IPD_CONF['reload'] = 0;
     
@@ -992,10 +998,10 @@ do // SIGHUPに対応したループ構造にしている
                     $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: INFO [iss-list] Request ISS Ban List "."\n";
                     // ログに出力する
                     log_write($BAN4IPD_CONF);
-                    // 情報共有サーバーのBANデータベースからBAN情報を取ってくる
-                    issbanlistget($BAN4IPD_CONF);
                     // 情報共有サーバーからBAN情報を取得した最終日時を設定
                     $BAN4IPD_CONF['iss_last_time'] = time();
+                    // 情報共有サーバーのBANデータベースからBAN情報を取ってくる
+                    issbanlistget($BAN4IPD_CONF);
                 }
             }
         }

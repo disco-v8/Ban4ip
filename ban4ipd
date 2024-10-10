@@ -21,6 +21,16 @@ require(__DIR__."/ban4ipd_init.php");
 // ----------------------------------------------------------------------
 // Main Routine(デーモン化するためにプロセスをフォーク。各監視設定(.conf)毎のフォークは_core.phpで)
 // ----------------------------------------------------------------------
+// PIDファイルがあるなら
+if (is_file($BAN4IPD_CONF['pid_file']))
+{
+    // エラーメッセージに、別のプロセスがある旨を設定
+    $ERR_MSG = 'Found other process : '.$BAN4IPD_CONF['pid_file'].'!?';
+    // メッセージを表示
+    print "\n".'ban4ipd ... '.$ERR_MSG."\n\n";
+    // 終わり
+    exit -1;
+}
 
 // プロセスをフォーク
 $PID = pcntl_fork();
@@ -57,9 +67,6 @@ else // if ($PID == 0)
         // 終わり
         exit -1;
     }
-    // 2024.09.13 PostgreSQL/MySQLにも対応するために、データベースの初期化をBan4IPとは異なり、_init.php内からこちらに移動
-    // データベースの初期化(接続や必要に応じてテーブル生成)を行う
-    ban4ip_dbinit();
     // コアファイルを読み込んで、実際の処理を開始
     require(__DIR__.'/ban4ipd_core.php');
 }

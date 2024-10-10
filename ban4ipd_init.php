@@ -110,7 +110,7 @@ function ban4ip_dbreset_sqlite3()
     $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: SQLite3's DB File deleted."."\n";
     // ログに出力する
     log_write($BAN4IPD_CONF);
-
+    
     $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: ban4ip will be RESTART!"."\n";
     // ログに出力する
     log_write($BAN4IPD_CONF);
