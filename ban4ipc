@@ -188,7 +188,7 @@ function ban4ip_optioncheck($BAN4IPD_CONF, $BAN4IPC_OPTIONS)
         exit -1;
     }
     // 対象の本来のアドレスを設定(ISS対応により、実際のBAN処理にはtarget_originaladdressを渡すようにしたため。2024.10.10)
-    $TARGET_CONF['target_originaladdress'] = $TARGET_CONF['target_address'];
+    $BAN4IPD_CONF['target_originaladdress'] = $BAN4IPD_CONF['target_address'];
     
     // BAN時間[s](--bantime)が設定されているなら
     if (isset($BAN4IPC_OPTIONS['bantime']))
