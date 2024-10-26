@@ -28,10 +28,10 @@ Step0. インストールしてください(例. CentOS 9 Streamの場合)
 
 dnf -y install php php-devel php-pear php-mbstring php-pdo php-process php-pecl-inotify
 
-wget 'https://github.com/disco-v8/Ban4ip/archive/main.zip' -O Ban4ip-main.zip
-unzip ./package/Ban4ip-main.zip
+wget 'https://github.com/disco-v8/Ban4ip/archive/master.zip' -O Ban4ip-master.zip
+unzip ./package/Ban4ip-master.zip
 
-cd ./Ban4ip-main/
+cd ./Ban4ip-master/
 
 chmod 700 ./ban4ipd
 chmod 700 ./ban4ipc
