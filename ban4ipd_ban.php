@@ -196,7 +196,16 @@ function ban4ip_ban($TARGET_CONF)
                     // -----------------------------
                     // 情報共有フラグがON(=1)なら、かつ情報共有サーバーからのデータでなければ
                     // -----------------------------
-                    if (isset($TARGET_CONF['iss_flag']) && $TARGET_CONF['iss_flag'] == 1 && $TARGET_CONF['target_service'] != 'iss-list')
+                    if (isset($TARGET_CONF['iss_flag']))
+                    {
+                        if ($TARGET_CONF['iss_flag'] == 1 && $TARGET_CONF['target_service'] != 'iss-list')
+                        {
+                            // BANした旨をメールで通知
+                            ban4ip_banmailsend($TARGET_CONF);
+                        }
+                    }
+                    // 情報共有フラグがON(=1)ではないなら
+                    else
                     {
                         // BANした旨をメールで通知
                         ban4ip_banmailsend($TARGET_CONF);
@@ -243,7 +252,16 @@ function ban4ip_ban($TARGET_CONF)
                     // -----------------------------
                     // 情報共有フラグがON(=1)なら、かつ情報共有サーバーからのデータでなければ
                     // -----------------------------
-                    if (isset($TARGET_CONF['iss_flag']) && $TARGET_CONF['iss_flag'] == 1 && $TARGET_CONF['target_service'] != 'iss-list')
+                    if (isset($TARGET_CONF['iss_flag']))
+                    {
+                        if ($TARGET_CONF['iss_flag'] == 1 && $TARGET_CONF['target_service'] != 'iss-list')
+                        {
+                            // BANした旨をメールで通知
+                            ban4ip_banmailsend($TARGET_CONF);
+                        }
+                    }
+                    // 情報共有フラグがON(=1)ではないなら
+                    else
                     {
                         // BANした旨をメールで通知
                         ban4ip_banmailsend($TARGET_CONF);
