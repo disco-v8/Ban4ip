@@ -122,7 +122,8 @@ function ban4ip_unban($TARGET_CONF)
     catch (PDOException $PDO_E) {
         // エラーの旨メッセージを設定
         $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: WARN PDOException:".$PDO_E->getMessage()." on ".__FILE__.":".__LINE__."\n";
-        $RESULT = TRUE;
+		// TRUEにしていたが、エラーだったらFALSEにしてDBのリセット判定をする 2025.03.05 T.Kabu
+		$RESULT = FALSE;
     }
     // 削除できなかったら
     if ($RESULT === FALSE)
