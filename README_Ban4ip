@@ -108,7 +108,7 @@ Step 3. Joining the Information Sharing Server (ISS)
 
 Let's Provide the IP address (or network) that Ban4IP/Ban4nft actually banned to the Information Sharing Server (ISS)!
 
-https://www.ban4nft.net/ (*Prepared as of 2024.09.30)
+https://www.ban4nft.net/
 
 You will register as a USERID with an email address, a password will be sent to that email address.
 Next, set “iss_flag” to “1” (=YES) in the configuration file and set ISS-related parameters as needed.
