@@ -773,11 +773,11 @@ system($BAN4IPD_CONF['ip6tables'].' -I INPUT -j ban4ip');
 // ----------------------------------------------------------------------
 do // SIGHUPに対応したループ構造にしている
 {
-    // Init DataBase
+    // 親プロセス用のデータベースの初期化(接続や必要に応じてテーブル生成)を行う
     // 2024.09.13 PostgreSQL/MySQLにも対応するために、データベースの初期化をBan4IPとは異なり、_init.php内からこちらに移動
     // 2024.10.09 ログへの書き出しを考慮してここに移動
-    // データベースの初期化(接続や必要に応じてテーブル生成)を行う
-    ban4ip_dbinit();
+    // 2025.09.05 いつの間にかDBの初期化を親プロセスのみでするようになっていて処理構造がおかしくなっていたのでdbinitを見直し
+    $BAN4IPD_CONF = ban4ip_dbinit($BAN4IPD_CONF);
     
     // 再読み込み要求を初期化
     $BAN4IPD_CONF['reload'] = 0;
@@ -785,6 +785,10 @@ do // SIGHUPに対応したループ構造にしている
     // 情報共有フラグがON(=1)なら
     if (isset($BAN4IPD_CONF['iss_flag']) && $BAN4IPD_CONF['iss_flag'] == 1)
     {
+        // 情報共有(ISS)関連の初期化処理
+        // 2025.09.05 いつの間にかDBの初期化を親プロセスのみでするようになっていて処理構造がおかしくなっていたのでdbinitから分離
+        ban4ip_issinit($BAN4IPD_CONF);
+        
         // 初回だけは、過去の自分の報告も取得＆反映させる
         $ORG_INFO['iss_get_myreport'] = $BAN4IPD_CONF['iss_get_myreport'];
         $BAN4IPD_CONF['iss_get_myreport'] = 1;
@@ -836,6 +840,9 @@ do // SIGHUPに対応したループ構造にしている
                     require(__DIR__.'/ban4ipd_sub.php');
                     // サブ設定ファイルを読み込んで変数展開する
                     $TARGET_CONF = array_merge($BAN4IPD_CONF, parse_ini_file($BAN4IPD_CONF['conf_file'], FALSE, INI_SCANNER_NORMAL));
+                    // 子プロセス用のデータベースの初期化(接続や必要に応じてテーブル生成)を行う…実際には接続のみし直す
+                    // 2025.09.05 いつの間にかDBの初期化を親プロセスのみでするようになっていて処理構造がおかしくなっていたのでdbinitを見直し
+                    $TARGET_CONF = ban4ip_dbinit($TARGET_CONF);
                     // 実際の処理を開始
                     ban4ip_start($TARGET_CONF);
                     // ここで終わり(子プロセスなので)
