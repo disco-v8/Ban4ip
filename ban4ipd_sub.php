@@ -155,16 +155,10 @@ function ban4ip_loop($TARGET_CONF)
                                     // 結果が0なのはおかしい…(んなこと発生するのはSQLiteだけだろうけど)
                                     else if ($RESULT_COUNT == 0)
                                     {
-                                        // BANデータベースのデータソース名(DSN)の指定が「sqlite」なら
-                                        if (isset($TARGET_CONF['pdo_dsn_count']) && preg_match('/^sqlite/', $TARGET_CONF['pdo_dsn_count']))
-                                        {
-                                            // エラーの旨メッセージを設定
-                                            $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", $TARGET_CONF['logtime'])." ban4ip[".getmypid()."]: WARN [".$TARGET_CONF['target_service']."] Cannot Query the DB, ".$TARGET_CONF['target_address']." ... DB File DELETE & REBOOT!(1)"."\n";
-                                            // 親プロセスに送信
-                                            ban4ip_sendmsg($TARGET_CONF);
-                                            // SQLite3のデータベースファイルをリセット
-                                            ban4ip_dbreset_sqlite3();
-                                        }
+                                        // エラーの旨メッセージを設定
+                                        $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", $TARGET_CONF['logtime'])." ban4ip[".getmypid()."]: WARN [".$TARGET_CONF['target_service']."] Cannot Query the DB, ".$TARGET_CONF['target_address']." ... DB File DELETE & REBOOT!(1)"."\n";
+                                        // 親プロセスに送信
+                                        ban4ip_sendmsg($TARGET_CONF);
                                     }
                                     // 検出回数未満なら
                                     else
@@ -298,19 +292,13 @@ function ban4ip_loop($TARGET_CONF)
                                         // 親プロセスにログメッセージを送信
                                         ban4ip_sendmsg($TARGET_CONF);
                                     }
-                                    // 結果が0なのはおかしい…(んなこと発生するのはSQLiteだけだろうけど)
+                                    // 結果が0なのはおかしい
                                     else if ($RESULT_COUNT == 0)
                                     {
-                                        // BANデータベースのデータソース名(DSN)の指定が「sqlite」なら
-                                        if (isset($TARGET_CONF['pdo_dsn_count']) && preg_match('/^sqlite/', $TARGET_CONF['pdo_dsn_count']))
-                                        {
-                                            // エラーの旨メッセージを設定
-                                            $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", $TARGET_CONF['logtime'])." ban4ip[".getmypid()."]: WARN [".$TARGET_CONF['target_service']."] Cannot Query the DB, ".$TARGET_CONF['target_address']." ... DB File DELETE & REBOOT!(2)"."\n";
-                                            // 親プロセスに送信
-                                            ban4ip_sendmsg($TARGET_CONF);
-                                            // SQLite3のデータベースファイルをリセット
-                                            ban4ip_dbreset_sqlite3();
-                                        }
+                                        // エラーの旨メッセージを設定
+                                        $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", $TARGET_CONF['logtime'])." ban4ip[".getmypid()."]: WARN [".$TARGET_CONF['target_service']."] Cannot Query the DB, ".$TARGET_CONF['target_address']." ... DB File DELETE & REBOOT!(2)"."\n";
+                                        // 親プロセスに送信
+                                        ban4ip_sendmsg($TARGET_CONF);
                                     }
                                     // 検出回数未満なら
                                     else
