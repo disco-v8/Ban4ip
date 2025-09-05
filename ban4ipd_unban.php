@@ -128,29 +128,10 @@ function ban4ip_unban($TARGET_CONF)
     // 削除できなかったら
     if ($RESULT === FALSE)
     {
-        // BANデータベースのデータソース名(DSN)の指定が「sqlite」なら
-        if (isset($TARGET_CONF['pdo_dsn_ban']) && preg_match('/^sqlite/', $TARGET_CONF['pdo_dsn_ban']))
-        {
-            // delete_err_countの宣言がなかったら
-            if (!isset($TARGET_CONF['delete_err_count']))
-            {
-                // 宣言をする
-                $TARGET_CONF['delete_err_count'] = 0;
-            }
-            $TARGET_CONF['delete_err_count'] += 1;
-            // もし検出回数以上になったら
-            if ($TARGET_CONF['delete_err_count'] >= $TARGET_CONF['maxretry'])
-            {
-                // エラーの旨メッセージを設定
-                $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: WARN [".$TARGET_CONF['target_service']."] Cannot Query the DB, ".$TARGET_CONF['target_address']." ... DB File DELETE & REBOOT!(3)"."\n";
-                // 親プロセスに送信…はしなくていい、unbanは親プロセスだから
-                //ban4ip_sendmsg($TARGET_CONF);
-                // ログに出力する(親プロセスにログを送信する代わりに)
-                log_write($TARGET_CONF);
-                // SQLite3のデータベースファイルをリセット
-                ban4ip_dbreset_sqlite3();
-            }
-        }
+        // エラーの旨メッセージを設定
+        $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: WARN [".$TARGET_CONF['target_service']."] Cannot Query the DB, ".$TARGET_CONF['target_address']." ... DB File DELETE & REBOOT!(3)"."\n";
+        // ログに出力する(親プロセスにログを送信する代わりに)
+        log_write($TARGET_CONF);
     }
     // 戻る
     return $TARGET_CONF;
