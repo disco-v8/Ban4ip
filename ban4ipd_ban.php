@@ -190,7 +190,7 @@ function ban4ip_ban($TARGET_CONF)
                 {
                     
                     $TARGET_CONF['log_msg'] .= 'until '.date("Y/m/d H:i:s", $TARGET_CONF['logtime'] + $TARGET_CONF['bantime'])." ";
-                    // ip6tablesのban4ipチェインに対象IPアドレスについて追加する
+                    // ban4ipチェインに対象IPアドレスについて追加する
                     system($IPTABLES.' -I ban4ip --source '.$TARGET_CONF['target_address'].' --jump '.$TARGET_CONF['target_rule']);
                     
                     // -----------------------------
@@ -237,7 +237,7 @@ function ban4ip_ban($TARGET_CONF)
                     // WAL内のデータをDBに書き出し(こうしないとban4ipc listで確認したり、別プロセスでsqlite3ですぐに確認できない…が、負荷的にはWALにしている意味がないよなぁ…)
                     $SQL_STR .= "PRAGMA wal_checkpoint;";
                 }
-                $TARGET_CONF['ban_db']->exec($SQL_STR);
+                $TARGET_CONF = ban4ip_db_exec($TARGET_CONF, 'ban_db', $SQL_STR);
             }
             // 対象サービスについてBANのプロトコルとポートが個別に設定されているなら
             else if (isset($TARGET_CONF['target_protcol']) && isset($TARGET_CONF['target_port']))
@@ -252,7 +252,7 @@ function ban4ip_ban($TARGET_CONF)
                 if (psearch($PROC_P, $TARGET_PATTERN) == FALSE)
                 {
                     $TARGET_CONF['log_msg'] .= 'until '.date("Y/m/d H:i:s", $TARGET_CONF['logtime'] + $TARGET_CONF['bantime'])." ";
-                    // ip6tablesのban4ipチェインに対象IPアドレスについて追加する
+                    // ban4ipチェインに対象IPアドレスについて追加する
                     system($IPTABLES.' -I ban4ip --source '.$TARGET_CONF['target_address'].' --proto '.$TARGET_CONF['target_protcol'].' --dport '.$TARGET_CONF['target_port'].' --jump '.$TARGET_CONF['target_rule']);
                     
                     // -----------------------------
@@ -299,7 +299,7 @@ function ban4ip_ban($TARGET_CONF)
                     // WAL内のデータをDBに書き出し(こうしないとban4ipc listで確認したり、別プロセスでsqlite3ですぐに確認できない…が、負荷的にはWALにしている意味がないよなぁ…)
                     $SQL_STR .= "PRAGMA wal_checkpoint;";
                 }
-                $TARGET_CONF['ban_db']->exec($SQL_STR);
+                $TARGET_CONF = ban4ip_db_exec($TARGET_CONF, 'ban_db', $SQL_STR);
             }
             // ないなら(対象IPアドレスがBANの対象である旨のみ出力)
             else
@@ -308,7 +308,7 @@ function ban4ip_ban($TARGET_CONF)
             }
         }
         
-        // BANした後のコマンド(exec_afer_ban)が設定されていたら実行(iptables/ip6tablesで設定するしないにかかわらず実行するように変更)
+        // BANした後のコマンド(exec_after_ban)が設定されていたら実行(iptables/ip6tablesで設定するしないにかかわらず実行するように変更)
         $TARGET_CONF = ban4ip_exec($TARGET_CONF, 'exec_after_ban');
         
         // -----------------------------

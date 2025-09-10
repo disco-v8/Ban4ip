@@ -53,4 +53,5 @@
 ;                           Change local_time() to time(). (for ISS)
 ; Ver.02.01    2024.10.04   Bug fix. (Safe Address check flow)
 ; Ver.02.02    2024.10.07   Only one address will provide information to ISS. (does not provide network address)
+; Ver.02.03    2025.09.09   Bug fix. (Added feature to detect disconnection from MySQL/PostgreSQL databases)
 ;

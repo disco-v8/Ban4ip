@@ -114,21 +114,13 @@ function ban4ip_loop($TARGET_CONF)
                                         continue;
                                     }
                                     
+                                    // 2025.09.09 T.Kabu 結局ここを含めて、exec()とquery()をラッピングすることにした
+                                    // 2025.09.09 T.Kabu PDO経由でMySQLやPostgreSQLと接続していると、何らかの理由で勝手に切断されていることがあり、この後のtry/catchで「General error: 2006 MySQL server has gone away」エラーとなることがある
                                     // 2021.09.07 T.Kabu どうもSQLite3が、DELETEの時にだけ何かのタイミングでデータベースがロックしているという判断でエラーとなる。実際にはDELETE出来ているので再試行も発生しないので、try/catchでスルーするようにした
-                                    try {
-                                        // カウントデータベースから該当サービスの現在時刻(UNIXタイム) - 対象時間より昔のカウントデータを削除
-////                                        $TARGET_CONF['count_db']->exec("DELETE FROM count_tbl WHERE service = '".$TARGET_CONF['target_service']."' AND registdate < (".(local_time() - $TARGET_CONF['findtime']).")");
-                                        $TARGET_CONF['count_db']->exec("DELETE FROM count_tbl WHERE service = '".$TARGET_CONF['target_service']."' AND registdate < (".(time() - $TARGET_CONF['findtime']).")");
-                                    }
-                                    catch (PDOException $PDO_E) {
-                                        // エラーの旨メッセージを設定
-                                        $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: WARN PDOException:".$PDO_E->getMessage()." on ".__FILE__.":".__LINE__."\n";
-                                        // 親プロセスに送信
-                                        ban4ip_sendmsg($TARGET_CONF);
-                                    }
+                                    $TARGET_CONF = ban4ip_db_exec($TARGET_CONF, 'count_db', "DELETE FROM count_tbl WHERE service = '".$TARGET_CONF['target_service']."' AND registdate < (".(time() - $TARGET_CONF['findtime']).")");
                                     // カウントデータベースにカウント対象キーワードを登録(IPアドレスじゃないのでクエリをエスケープする)
-                                    $TARGET_CONF['count_db']->exec("INSERT INTO count_tbl VALUES ('".$TARGET_CONF['target_keyword']."','".$TARGET_CONF['target_service']."',".$TARGET_CONF['logtime'].")");
-                                    
+                                    $TARGET_CONF = ban4ip_db_exec($TARGET_CONF, 'count_db', "INSERT INTO count_tbl VALUES ('".$TARGET_CONF['target_keyword']."','".$TARGET_CONF['target_service']."',".$TARGET_CONF['logtime'].")");
+
                                     // カウントデータベースで対象キーワードが対象時間内に何個存在するか取得
                                     $RESULT = $TARGET_CONF['count_db']->query("SELECT COUNT(address) AS addr_count FROM count_tbl WHERE address = '".$TARGET_CONF['target_keyword']."' AND service = '".$TARGET_CONF['target_service']."' AND registdate > (".($TARGET_CONF['logtime'] - $TARGET_CONF['findtime']).")");
                                     
@@ -240,30 +232,13 @@ function ban4ip_loop($TARGET_CONF)
                                         }
                                     }
                                     
+                                    // 2025.09.09 T.Kabu 結局ここを含めて、exec()とquery()をラッピングすることにした
+                                    // 2025.09.09 T.Kabu PDO経由でMySQLやPostgreSQLと接続していると、何らかの理由で勝手に切断されていることがあり、この後のtry/catchで「General error: 2006 MySQL server has gone away」エラーとなることがある
                                     // 2021.09.07 T.Kabu どうもSQLite3が、DELETEの時にだけ何かのタイミングでデータベースがロックしているという判断でエラーとなる。実際にはDELETE出来ているので再試行も発生しないので、try/catchでスルーするようにした
-                                    try {
-                                        // カウントデータベースから該当サービスの現在時刻(UNIXタイム) - 対象時間より昔のカウントデータを削除
-////                                        $TARGET_CONF['count_db']->exec("DELETE FROM count_tbl WHERE service = '".$TARGET_CONF['target_service']."' AND registdate < (".(local_time() - $TARGET_CONF['findtime']).")");
-                                        $TARGET_CONF['count_db']->exec("DELETE FROM count_tbl WHERE service = '".$TARGET_CONF['target_service']."' AND registdate < (".(time() - $TARGET_CONF['findtime']).")");
-                                    }
-                                    catch (PDOException $PDO_E) {
-                                        // エラーの旨メッセージを設定
-                                        $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: WARN PDOException:".$PDO_E->getMessage()." on ".__FILE__.":".__LINE__."\n";
-                                        // 親プロセスに送信
-                                        ban4ip_sendmsg($TARGET_CONF);
-                                    }
-                                    
-                                    // 2021.09.10 T.Kabu PHP7の環境だけで、ここでDBが壊れたよ、と検出することがあるので、ひとまずtry/catchしてみる
-                                    try {
-                                        // カウントデータベースにカウント対象IPアドレスを登録
-                                        $TARGET_CONF['count_db']->exec("INSERT INTO count_tbl VALUES ('".$TARGET_CONF['target_address']."','".$TARGET_CONF['target_service']."',".$TARGET_CONF['logtime'].")");
-                                    }
-                                    catch (PDOException $PDO_E) {
-                                        // エラーの旨メッセージを設定
-                                        $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: WARN Cannot INSERT INTO count_tbl!? PDOException:".$PDO_E->getMessage()." on ".__FILE__.":".__LINE__."\n";
-                                        // 親プロセスに送信
-                                        ban4ip_sendmsg($TARGET_CONF);
-                                    }
+                                    // カウントデータベースから該当サービスの現在時刻(UNIXタイム) - 対象時間より昔のカウントデータを削除
+                                    $TARGET_CONF = ban4ip_db_exec($TARGET_CONF, 'count_db', "DELETE FROM count_tbl WHERE service = '".$TARGET_CONF['target_service']."' AND registdate < (".(time() - $TARGET_CONF['findtime']).")");
+                                    // カウントデータベースにカウント対象IPアドレスを登録
+                                    $TARGET_CONF = ban4ip_db_exec($TARGET_CONF, 'count_db', "INSERT INTO count_tbl VALUES ('".$TARGET_CONF['target_address']."','".$TARGET_CONF['target_service']."',".$TARGET_CONF['logtime'].")");
                                     
                                     // 対象IPアドレスの検出回数を初期化
                                     $RESULT_COUNT = 0;

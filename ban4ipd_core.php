@@ -113,7 +113,7 @@ function get_networkaddr($IP_ADDR, $IP_MASK)
     // 対象IPアドレスがIPv4なら(IPv4だったら文字列そのものが返ってくる)
     else if (filter_var($IP_ADDR, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== FALSE)
     {
-        // IPv6なのに、マスク値が0～32でなかったら
+        // IPv4なのに、マスク値が0～32でなかったら
         if ($IP_MASK < 0 || $IP_MASK > 32)
         {
             // 戻る
@@ -523,24 +523,14 @@ function ban4ip_mail_send()
     
     // メール送信レートテーブルから、対象メッセージの現在時刻 - 対象時間より昔のデータを削除
     $SQL_STR = "DELETE FROM mailrate_tbl WHERE registdate < (".(time() - $TARGET_CONF['mailratetime']).");";
-    try {
-        $RESULT = $TARGET_CONF['mailrate_db']->exec($SQL_STR);
-    }
-    catch (PDOException $PDO_E) {
-        // エラーの旨メッセージを設定
-        $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: WARN PDOException:".$PDO_E->getMessage()." on ".__FILE__.":".__LINE__."\n";
-    }
+    $TARGET_CONF = ban4ip_db_exec($TARGET_CONF, 'mailrate_db', $SQL_STR);
+
     // メール送信レートテーブルに対象メッセージを登録
     $SQL_STR = "INSERT INTO mailrate_tbl VALUES ('".$MAIL_TO."','".$MAIL_TITLE."',".time().");";
-    try {
-        $RESULT = $TARGET_CONF['mailrate_db']->exec($SQL_STR);
-    }
-    catch (PDOException $PDO_E) {
-        // エラーの旨メッセージを設定
-        $TARGET_CONF['log_msg'] .= date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: WARN PDOException:".$PDO_E->getMessage()." on ".__FILE__.":".__LINE__."\n";
-        $RESULT = 0;
-    }
-    
+    $TARGET_CONF = ban4ip_db_exec($TARGET_CONF, 'mailrate_db', $SQL_STR);
+    // 登録できた件数を取得
+    $RESULT = $TARGET_CONF['exec_result'];
+
     // もし新しく登録できたら
     if ($RESULT != 0)
     {
@@ -947,21 +937,13 @@ do // SIGHUPに対応したループ構造にしている
                 }
             }
             
+            // 2025.09.09 T.Kabu 結局ここを含めて、exec()とquery()をラッピングすることにした
+            // 2025.09.09 T.Kabu PDO経由でMySQLやPostgreSQLと接続していると、何らかの理由で勝手に切断されていることがあり、この後のtry/catchで「General error: 2006 MySQL server has gone away」エラーとなることがある
             // 2021.09.07 T.Kabu どうもSQLite3が、DELETEの時にだけ何かのタイミングでデータベースがロックしているという判断でエラーとなる。実際にはDELETE出来ているので再試行も発生しないので、try/catchでスルーするようにした
-            try {
-                // カウントデータベースから最大カウント時間を過ぎたデータをすべて削除(いわゆる削除漏れのゴミ掃除)
-                $SQL_STR = "DELETE FROM count_tbl WHERE registdate < ".$BAN4IPD_CONF['maxfindtime'].";";
-                $BAN4IPD_CONF['count_db']->exec($SQL_STR);
-            }
-            catch (PDOException $PDO_E) {
-                // エラーの旨メッセージを設定
-                $BAN4IPD_CONF['log_msg'] = date("Y-m-d H:i:s", local_time())." ban4ip[".getmypid()."]: WARN PDOException:".$PDO_E->getMessage()." on ".__FILE__.":".__LINE__."\n";
-                // ログに出力する
-                log_write($BAN4IPD_CONF);
-            }
-            
+            $SQL_STR = "DELETE FROM count_tbl WHERE registdate < ".$BAN4IPD_CONF['maxfindtime'].";";
+            $BAN4IPD_CONF = ban4ip_db_exec($BAN4IPD_CONF, 'count_db', $SQL_STR);
+
             // BANデータベースでBAN解除対象IPアドレスを取得(UNIXタイム)
-////            $SQL_STR = "SELECT * FROM ban_tbl WHERE unbandate < ".local_time().";";
             $SQL_STR = "SELECT * FROM ban_tbl WHERE unbandate < ".time().";";
             $RESULT = $BAN4IPD_CONF['ban_db']->query($SQL_STR);
             // BAN解除対象IPアドレスの取得ができなかったら
@@ -990,10 +972,8 @@ do // SIGHUPに対応したループ構造にしている
                 if (isset($TARGET_CONF['pdo_dsn_ban']) && preg_match('/^sqlite/', $TARGET_CONF['pdo_dsn_ban']))
                 {
                     // WAL内のデータをDBに書き出し(こうしないとban4ipc listで確認したり、別プロセスでsqlite3ですぐに確認できない…が、負荷的にはWALにしている意味がないよなぁ…一応banの場合は発行時に、unbanはここですべてが終わった時に書き出し処理をする。count_dbはしない)
-////                    $SQL_STR = "PRAGMA wal_checkpoint;";
-////                    $BAN4IPD_CONF['count_db']->exec($SQL_STR);
                     $SQL_STR = "PRAGMA wal_checkpoint;";
-                    $BAN4IPD_CONF['ban_db']->exec($SQL_STR);
+                    $BAN4IPD_CONF = ban4ip_db_exec($BAN4IPD_CONF, 'ban_db', $SQL_STR);
                 }
             }
             // 情報共有フラグがON(=1)なら
