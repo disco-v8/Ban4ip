@@ -387,7 +387,7 @@ function issbanlistget($TARGET_CONF)
                 if (check_safeaddr($TARGET_CONF) == TRUE)
                 {
                     // ホワイトリストである旨のメッセージを設定
-                    $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", $TARGET_CONF['logtime'])." ban4nft[".getmypid()."]: INFO [".$TARGET_CONF['target_service']."] Safe ".$TARGET_CONF['target_address']."\n";
+                    $TARGET_CONF['log_msg'] = date("Y-m-d H:i:s", $TARGET_CONF['logtime'])." ban4ip[".getmypid()."]: INFO [".$TARGET_CONF['target_service']."] Safe ".$TARGET_CONF['target_address']."\n";
                     // ログに出力する
                     log_write($TARGET_CONF);
                     // 次の対象文字列検査へ
