@@ -1,7 +1,12 @@
 [Unit]
 Description=Ban4ip Service
 Documentation=https://github.com/disco-v8/Ban4ip
-After=network.target iptables.service firewalld.service firewalld.service
+After=network.target iptables.service 
+#After=network.target iptables.service mysqld.service
+#Requires=mysqld.service
+# for PostgreSQL
+#After=network.target iptables.service postgresql.service
+#Requires=postgresql.service
 
 [Service]
 Type=forking
